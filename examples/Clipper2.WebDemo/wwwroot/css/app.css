@@ -151,14 +151,37 @@ a.badge.link:hover { color: var(--text); border-color: #37506b; }
   cursor: crosshair;
 }
 
-.row.metrics { margin-top: 14px; }
+.canvas .vertex {
+  fill: var(--accent);
+  stroke: #08110c;
+  stroke-width: 1.5;
+}
+
+.progress {
+  height: 4px;
+  margin: 12px 0 2px;
+  background: var(--panel-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+}
+
+.row.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(124px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
 
 .metric {
   background: var(--panel-2);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 8px 12px;
-  min-width: 118px;
 }
 
 .metric span {
@@ -167,7 +190,11 @@ a.badge.link:hover { color: var(--text); border-color: #37506b; }
   font-size: 12px;
 }
 
-.metric b { font-size: 15px; font-weight: 600; }
+.metric b {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
 
 svg.chart {
   width: 100%;

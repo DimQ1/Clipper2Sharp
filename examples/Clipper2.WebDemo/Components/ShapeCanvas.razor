@@ -41,6 +41,17 @@
   {
     <path d="@Svg.PathsData(outcome.Result)" fill="rgba(60, 220, 150, 0.35)" stroke="#2fd08a" stroke-width="3"
           fill-rule="evenodd" />
+
+    @if (ShowResultVertices)
+    {
+      @foreach (Path64 resultPath in outcome.Result)
+      {
+        @foreach (Point64 vertex in resultPath)
+        {
+          <circle class="vertex" cx="@vertex.X" cy="@vertex.Y" r="4.5" />
+        }
+      }
+    }
   }
 
   @if (Outcome?.Probes is { Count: > 0 } probes)
@@ -73,6 +84,8 @@
   [Parameter, EditorRequired] public Paths64 Clip { get; set; } = new();
   [Parameter] public OpOutcome? Outcome { get; set; }
   [Parameter] public bool ShowInput { get; set; } = true;
+  /// <summary>Marks the vertices of the result - the simplification page needs them.</summary>
+  [Parameter] public bool ShowResultVertices { get; set; }
   [Parameter] public EventCallback<VertexMove> OnVertexMoved { get; set; }
   [Parameter] public EventCallback<ClipMove> OnClipMoved { get; set; }
   [Parameter] public EventCallback OnDragStarted { get; set; }

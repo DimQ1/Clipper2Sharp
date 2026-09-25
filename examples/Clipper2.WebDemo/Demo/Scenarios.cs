@@ -53,9 +53,11 @@ public static class Scenarios
         new Paths64 { Shapes.Blob(new Random(seed), centre, 150, 20) },
         new Paths64()),
 
-      // a dense outline: simplification has something to remove
+      // a dense, slightly jittery outline: simplification has something to remove,
+      // and every removed vertex is visible because the page also draws the
+      // surviving vertices as dots
       Scenario.Simplifying => (
-        new Paths64 { Shapes.Blob(new Random(seed), centre, 230, 420) },
+        new Paths64 { Shapes.NoisyOutline(new Random(seed), centre, 230, 420, 9) },
         new Paths64()),
 
       _ => (Shapes.RandomPaths(seed, 12, 16, 70, Shapes.WorldWidth, Shapes.WorldHeight),
@@ -83,8 +85,10 @@ public static class Scenarios
 
       case Scenario.ClipWindow:
       {
-        // a window sliding over the drawing: everything outside it disappears
-        long width = 460, height = 300;
+        // a window sliding over the drawing, breathing while it does so: everything
+        // outside it disappears, so the discarded area changes on every frame
+        double breath = 1.0 + 0.16 * Math.Sin(2 * turn);
+        long width = (long) (430 * breath), height = (long) (280 * breath);
         long left = 20 + (long) ((Shapes.WorldWidth - width - 40) * phase);
         long top = Shapes.WorldHeight / 2 - height / 2 + (long) (70 * Math.Sin(3 * turn));
         return new FrameInputs(subject, clip, 0, 0, new Rect64(left, top, left + width, top + height));
@@ -106,12 +110,23 @@ public static class Scenarios
 
       default:
       {
-        // the shapes arrive one by one and the union absorbs them
-        int visible = 1 + (int) (phase * (subject.Count - 1) + 0.5);
-        if (visible > subject.Count) visible = subject.Count;
-        Paths64 partial = new(visible);
-        for (int i = 0; i < visible; i++) partial.Add(subject[i]);
-        return new FrameInputs(partial, clip, 0, 0, null);
+        // the shapes arrive one by one and the union absorbs them; each one slides in
+        // from outside, so the scene keeps moving between the arrivals
+        Paths64 arriving = new(subject.Count);
+        for (int i = 0; i < subject.Count; i++)
+        {
+          // 0 = still outside, 1 = in place
+          double arrival = phase * subject.Count - i;
+          if (arrival <= 0) break;
+          if (arrival > 1) arrival = 1;
+
+          double angle = 2 * Math.PI * i / subject.Count;
+          long dx = (long) ((1 - arrival) * 700 * Math.Cos(angle));
+          long dy = (long) ((1 - arrival) * 700 * Math.Sin(angle));
+          Path64 path = subject[i];
+          arriving.Add(dx == 0 && dy == 0 ? path : Clipper.TranslatePath(path, dx, dy));
+        }
+        return new FrameInputs(arriving, clip, 0, 0, null);
       }
     }
   }

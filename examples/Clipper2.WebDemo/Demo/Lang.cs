@@ -108,17 +108,17 @@ public static class Lang
       "The shape you need is the exact overlap of two shapes that keep moving: a CAD drag, a fit test, two moving contours. The intersection is recomputed every frame, and the green area is the answer.",
       "Нужно точное пересечение двух фигур, которые движутся: перетаскивание в CAD, проверка стыковки, два движущихся контура. Пересечение пересчитывается на каждом кадре, зелёная область — ответ."),
     ["whyClipWindow"] = (
-      "Only what is inside the window matters. Rectangle clipping is the cheap way to get that: no sweep, no intersections, just the visible part of every path.",
-      "Важно только то, что попало в окно. Прямоугольное отсечение — дешёвый способ это получить: без прохода по AEL и без пересечений, только видимая часть каждого пути."),
+      "Only what is inside the window matters. The window slides and breathes over the drawing: everything outside it is simply gone, without a sweep or a single intersection.",
+      "Важно только то, что попало в окно. Окно скользит и дышит по рисунку: всё, что оказалось снаружи, просто исчезает — без прохода по AEL и без пересечений."),
     ["whyGrowingOffset"] = (
       "A contour a fixed distance away: a toolpath, a clearance zone, a hit box. The joins are what makes it more than scaling - corners stay sharp or round the way you ask.",
       "Контур на фиксированном расстоянии: траектория инструмента, зона зазора, хитбокс. Стыки (joins) отличают это от простого масштабирования — углы остаются острыми или скруглёнными, как вы зададите."),
     ["whySimplifying"] = (
-      "Fewer points for the same shape: vertices that stay within epsilon of the line between their neighbours carry no information and disappear.",
-      "Меньше точек при той же форме: вершины, отклоняющиеся от линии между соседями меньше чем на epsilon, информации не несут и исчезают."),
+      "Fewer points for the same shape: vertices that stay within epsilon of the line between their neighbours carry no information and disappear. The dots are the surviving vertices, so the falling count is the whole story.",
+      "Меньше точек при той же форме: вершины, отклоняющиеся от линии между соседями меньше чем на epsilon, информации не несут и исчезают. Точки — выжившие вершины, так что падение их числа и есть весь смысл."),
     ["whyGrowingUnion"] = (
-      "One outline instead of many overlapping ones. Watch the sweep absorb each new shape and the path count stop growing.",
-      "Один контур вместо множества перекрывающихся. Смотрите, как проход поглощает каждую новую фигуру, а число контуров перестаёт расти."),
+      "One outline instead of many overlapping ones. The shapes fly in one by one and the sweep absorbs each arrival into the growing outline.",
+      "Один контур вместо множества перекрывающихся. Фигуры влетают по одной, и проход поглощает каждую в растущий контур."),
     ["scenarioHint"] = (
       "The animation plays the operation the scenario is about; the controls above it stay available when nothing is playing.",
       "Анимация сама включает нужную операцию; элементы управления остаются доступны, когда анимация не запущена."),

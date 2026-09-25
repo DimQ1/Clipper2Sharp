@@ -32,6 +32,9 @@
       <input type="range" min="20" max="200" step="10" @bind="_speedPercent" />
     </label>
   </div>
+  <div class="progress" title="position in the cycle">
+    <div class="progress-fill" style="width: @(Svg.Number(_phase * 100, "0.#"))%"></div>
+  </div>
   <p class="hint">@ScenWhy(_scenario)</p>
   <div class="row metrics">
     <div class="metric"><span>@T("animFrame")</span><b>@Svg.Number(_lastFrameMs, "0.0") ms</b></div>
@@ -143,6 +146,7 @@
 <Section Title="@T("results")">
   <ShapeCanvas Subject="@_subject" Clip="@_clip" Outcome="@_outcome"
                ShowInput="@_showInput"
+               ShowResultVertices="@(_scenario == Scenario.Simplifying)"
                OnDragStarted="OnDragStarted"
                OnVertexMoved="OnVertexMoved"
                OnClipMoved="OnClipMoved"
@@ -249,6 +253,7 @@
   private Scenario _scenario = Scenario.MovingClip;
   private bool _playing;
   private double _speedPercent = 100;
+  private double _phase;
   private double _lastFrameMs;
   private double _fps;
   private Paths64 _baseSubject = new();
@@ -379,8 +384,12 @@
         _fps = _fps <= 0 ? instantFps : _fps * 0.8 + 0.2 * instantFps;
       }
 
+      // the phase has to advance with the real time between two frames (operation,
+      // paint and the wait below), otherwise a cycle takes as long as the page is
+      // idle-waiting, i.e. several times the intended period
+      double elapsed = sinceLastFrame > 0 ? sinceLastFrame : _lastFrameMs;
       double period = Scenarios.PeriodMilliseconds / Math.Max(0.1, _speedPercent / 100.0);
-      phase += _lastFrameMs / period;
+      phase += elapsed / period;
       if (phase >= 1) phase -= Math.Floor(phase);
 
       // hand the thread back so the browser can paint the frame that was just
@@ -395,6 +404,7 @@
 
   private void ApplyFrame(double phase)
   {
+    _phase = phase;
     FrameInputs frame = Scenarios.Frame(_scenario, phase, _baseSubject, _baseClip);
     _subject = frame.Subject;
     _clip = frame.Clip;

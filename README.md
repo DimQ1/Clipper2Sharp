@@ -41,6 +41,7 @@ utils/
   Clipper.FileIO/       clipping test file loader/saver
 examples/
   ConsoleDemo/ InflateDemo/ RectClipDemo/ TriangulationDemo/ UsingZDemo/
+  Clipper2.WebDemo/      the interactive WebAssembly demo (GitHub Pages)
 tests/
   Clipper2.Tests/       MSTest suite (MSTest + the upstream test data files)
 benchmark/
@@ -60,6 +61,12 @@ dotnet build Clipper2Sharp.slnx
 dotnet test  tests/Clipper2.Tests/Clipper2.Tests.csproj
 dotnet run   --project examples/ConsoleDemo/ConsoleDemo.csproj -- out.svg
 dotnet run -c Release --project benchmark/Clipper2.Benchmark/Clipper2.Benchmark.csproj
+
+# the interactive WebAssembly demo (the same app as https://dimq1.github.io/Clipper2Sharp/)
+dotnet run -c Release --project examples/Clipper2.WebDemo
+# the AOT flavour is several times faster at rendering (the animation runs at ~60 fps
+# instead of a few fps) but needs the workload: dotnet workload install wasm-tools
+dotnet run -c Release --project examples/Clipper2.WebDemo -p:WasmAot=true
 
 # the bit-exactness guards (both must report 0 differences)
 dotnet run -c Release --project benchmark/Clipper2.PortProfile -- golden verify

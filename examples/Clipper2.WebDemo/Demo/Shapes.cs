@@ -57,6 +57,24 @@ public static class Shapes
     return path;
   }
 
+  /// <summary>
+  /// A dense outline that is smooth in the large and jittery in the small - the
+  /// shape simplification exists for. The jitter is what the epsilon sweep removes.
+  /// </summary>
+  public static Path64 NoisyOutline(Random rnd, Point64 centre, double radius, int vertices, double jitter)
+  {
+    Path64 path = new(vertices);
+    for (int i = 0; i < vertices; i++)
+    {
+      double a = 2 * Math.PI * i / vertices;
+      // a few low frequency lobes make the outline interesting, the jitter makes it dense
+      double lobes = 1 + 0.28 * Math.Sin(3 * a + 0.7) + 0.18 * Math.Sin(7 * a);
+      double noise = jitter * (rnd.NextDouble() * 2 - 1);
+      path.Add(Polar(centre, radius * lobes + noise, a));
+    }
+    return path;
+  }
+
   /// <summary>A rectangle, wound like <see cref="Regular"/>.</summary>
   public static Path64 Rect(long left, long top, long width, long height)
   {
