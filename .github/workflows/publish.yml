@@ -25,6 +25,10 @@ on:
         description: 'Build, test and pack only - do not upload to nuget.org'
         type: boolean
         default: true
+      check_credentials:
+        description: 'Also exchange the OIDC token for a temporary key (this is what validates the nuget.org policy) - still no upload'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -126,10 +130,18 @@ jobs:
 
       - name: NuGet login (OIDC trusted publishing)
         id: login
-        if: ${{ (github.ref_type == 'tag' || inputs.dry_run == false) && env.NUGET_API_KEY == '' && env.NUGET_USER != '' }}
+        if: ${{ (github.ref_type == 'tag' || inputs.dry_run == false || inputs.check_credentials) && env.NUGET_API_KEY == '' && env.NUGET_USER != '' }}
         uses: NuGet/login@v1
         with:
           user: ${{ env.NUGET_USER }}
+
+      # a manual run with check_credentials: prove that the nuget.org policy
+      # matches this repository and workflow without publishing anything
+      - name: Credentials check
+        if: ${{ inputs.check_credentials && steps.login.outcome == 'success' }}
+        run: |
+          echo "nuget.org accepted the OIDC token for $NUGET_USER and issued a temporary API key"
+          echo "nothing was pushed - remove check_credentials (or push a v* tag) when you want a real release"
 
       # skip the upload on a manual run unless dry_run was switched off
       - name: Push to nuget.org
