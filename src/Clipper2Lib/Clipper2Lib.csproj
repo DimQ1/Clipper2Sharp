@@ -5,7 +5,7 @@
     <AssemblyName>Clipper2Lib</AssemblyName>
     <PackageId>Clipper2Sharp</PackageId>
     <Title>Clipper2Sharp</Title>
-    <Description>Polygon Clipping and Offsetting library - C# port of the Clipper2 C++ implementation.</Description>
+    <Description>Polygon Clipping and Offsetting library - a from scratch C# port of the Clipper2 C++ implementation. Fully managed C#, platform independent (Windows, Linux, macOS, WebAssembly), no P/Invoke, no native dependency, no unsafe code, no NuGet dependencies.</Description>
     <PackageTags>geometry;polygon;clipping;inflate;intersection;union;difference;offsetting;boolean-operations</PackageTags>
     <!-- the interactive demo of this package (running as WebAssembly) -->
     <PackageProjectUrl>https://dimq1.github.io/Clipper2Sharp/</PackageProjectUrl>

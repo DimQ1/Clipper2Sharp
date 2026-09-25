@@ -7,7 +7,7 @@ namespace stay `Clipper2Lib`, so the package is a drop-in for the upstream C# po
 |---|---|
 | package id | `Clipper2Sharp` |
 | assembly / namespace | `Clipper2Lib` |
-| target framework | `net10.0` (pure managed code, no native dependency) |
+| target framework | `net10.0` — one managed assembly: no P/Invoke, no native dependency, no `unsafe`, no NuGet dependencies. Runs on Windows, Linux and macOS (x64, arm64) and in the browser as WebAssembly |
 | version | `<Version>` in `Directory.Build.props` (currently `2.0.1`) |
 | licence | `BSL-1.0` (the Clipper2 licence, `PackageLicenseExpression`) |
 | package readme | the repository `README.md`, packed as `README.md` |

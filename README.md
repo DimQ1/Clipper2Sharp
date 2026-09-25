@@ -12,7 +12,17 @@ C# 2.0.0 code.
 
 * Target framework: **.NET 10**
 * Solution file: **`Clipper2Sharp.slnx`** (the XML solution format)
-* Pure C# — no P/Invoke, no native dependency.
+* **100 % managed C#**: one assembly (`Clipper2Lib.dll`), **no P/Invoke and no
+  native library**, no `unsafe` code (only the portable
+  `System.Runtime.CompilerServices.Unsafe` helpers for span access) and **zero
+  NuGet dependencies**.
+* **Platform independent**: the same assembly runs on Windows, Linux and macOS on
+  x64 and arm64, and in the browser as WebAssembly (the live demo is exactly
+  that). Nothing in the library is OS or CPU specific — the vectorised paths use
+  the portable `Vector<T>`/`Vector128`/`Vector256` APIs instead of hardware
+  intrinsics such as `Sse2`/`Avx2`/`AdvSimd`, and the exact 64×64 products use
+  `System.Int128`, which every .NET runtime provides. The CI builds, tests and
+  packs it on Linux.
 * **Live demo: <https://dimq1.github.io/Clipper2Sharp/>** — the port running as
   WebAssembly in the browser: drag the shapes, run every operation, play the
   animations and watch the timings. Same code as the package.
