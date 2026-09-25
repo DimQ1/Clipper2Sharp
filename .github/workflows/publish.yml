@@ -126,7 +126,7 @@ jobs:
 
       - name: NuGet login (OIDC trusted publishing)
         id: login
-        if: ${{ (github.ref_type == 'tag' || inputs.dry_run == false) && env.NUGET_API_KEY == '' }}
+        if: ${{ (github.ref_type == 'tag' || inputs.dry_run == false) && env.NUGET_API_KEY == '' && env.NUGET_USER != '' }}
         uses: NuGet/login@v1
         with:
           user: ${{ env.NUGET_USER }}
