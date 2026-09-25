@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>RectClipDemo</RootNamespace>
+    <AssemblyName>RectClipDemo</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Clipper2Lib\Clipper2Lib.csproj" />
+    <ProjectReference Include="..\..\utils\Clipper2.SVG\Clipper2.SVG.csproj" />
+  </ItemGroup>
+
+</Project>

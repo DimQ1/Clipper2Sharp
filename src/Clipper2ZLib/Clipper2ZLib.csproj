@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Clipper2ZLib</RootNamespace>
+    <AssemblyName>Clipper2ZLib</AssemblyName>
+    <DefineConstants>$(DefineConstants);USINGZ</DefineConstants>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);CS0108;CS0114</NoWarn>
+  </PropertyGroup>
+
+  <!-- nb: the very same sources build both the 2D (Clipper2Lib) and the
+       Z-coordinate (Clipper2ZLib) flavours of the library -->
+
+  <ItemGroup>
+    <Compile Include="..\Clipper2Lib\*.cs">
+      <Link>%(Filename)%(Extension)</Link>
+    </Compile>
+  </ItemGroup>
+
+</Project>

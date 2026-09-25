@@ -1,0 +1,23 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Clipper2Lib/Clipper2Lib.csproj" />
+    <Project Path="src/Clipper2ZLib/Clipper2ZLib.csproj" />
+  </Folder>
+  <Folder Name="/utils/">
+    <Project Path="utils/Clipper2.SVG/Clipper2.SVG.csproj" />
+    <Project Path="utils/Clipper.FileIO/Clipper.FileIO.csproj" />
+  </Folder>
+  <Folder Name="/examples/">
+    <Project Path="examples/ConsoleDemo/ConsoleDemo.csproj" />
+    <Project Path="examples/InflateDemo/InflateDemo.csproj" />
+    <Project Path="examples/RectClipDemo/RectClipDemo.csproj" />
+    <Project Path="examples/TriangulationDemo/TriangulationDemo.csproj" />
+    <Project Path="examples/UsingZDemo/UsingZDemo.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Clipper2.Tests/Clipper2.Tests.csproj" />
+  </Folder>
+  <Folder Name="/benchmark/">
+    <Project Path="benchmark/Clipper2.Benchmark/Clipper2.Benchmark.csproj" />
+  </Folder>
+</Solution>

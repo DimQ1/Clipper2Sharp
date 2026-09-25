@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Clipper2.Benchmark</RootNamespace>
+    <AssemblyName>Clipper2.Benchmark</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <TieredPGO>true</TieredPGO>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Clipper2Lib\Clipper2Lib.csproj" Aliases="newcli" />
+    <ProjectReference Include="..\ReferenceClipper2Lib\ReferenceClipper2Lib.csproj" Aliases="refcli" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\tests\Clipper2.Tests\TestData\*.txt"
+          CopyToOutputDirectory="PreserveNewest"
+          Link="TestData\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

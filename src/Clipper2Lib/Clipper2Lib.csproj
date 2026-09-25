@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Clipper2Lib</RootNamespace>
+    <AssemblyName>Clipper2Lib</AssemblyName>
+    <PackageId>Clipper2Sharp</PackageId>
+    <Title>Clipper2Sharp</Title>
+    <Description>Polygon Clipping and Offsetting library - C# port of the Clipper2 C++ implementation.</Description>
+    <PackageTags>geometry;polygon;clipping;inflate;intersection;union;difference;offsetting;boolean-operations</PackageTags>
+    <PackageProjectUrl>https://www.angusj.com/clipper2/Docs/Overview.htm</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/AngusJohnson/Clipper2</RepositoryUrl>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+</Project>

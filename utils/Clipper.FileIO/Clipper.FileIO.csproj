@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Clipper2Lib</RootNamespace>
+    <AssemblyName>Clipper.FileIO</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Clipper2Lib\Clipper2Lib.csproj" />
+  </ItemGroup>
+
+</Project>

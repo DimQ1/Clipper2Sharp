@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- The original (upstream) C# implementation, compiled by this repository's
+         toolchain and target framework so that the benchmark compares like with
+         like. Sources are taken directly from the Clipper2 checkout. -->
+    <AssemblyName>ReferenceClipper2Lib</AssemblyName>
+    <RootNamespace>Clipper2Lib</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <Clipper2ReferenceRoot Condition="'$(Clipper2ReferenceRoot)' == ''">E:\Learning\AI\Clipper2\CSharp\Clipper2Lib</Clipper2ReferenceRoot>
+    <NoWarn>$(NoWarn);CS0618;CS0162;CS0219;CS8509</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(Clipper2ReferenceRoot)\*.cs">
+      <Link>%(Filename)%(Extension)</Link>
+    </Compile>
+  </ItemGroup>
+
+</Project>
