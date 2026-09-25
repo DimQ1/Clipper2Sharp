@@ -1,7 +1,7 @@
 15927797437ddec4 poly 1 paths
 3c3c3167d814b970 poly 1 tree
 e0069f5cbb0a40b0 poly 1 reverse+collinear
-324b6615723674cd poly 1 clipperD
+f47075107fdfa3c4 poly 1 clipperD
 e89759b8d8205708 poly 1 rectclip
 99d9673415f13925 poly 1 simplify
 0d995614d2021ea5 poly 1 triangulate
@@ -9,7 +9,7 @@ c9aa443eeb92aba6 poly 1 pip
 1994ac3e51a486a4 poly 2 paths
 a030dd152f556cab poly 2 tree
 f1e2bc19d31369e8 poly 2 reverse+collinear
-06990b7e8b4b7792 poly 2 clipperD
+1185508a56e72907 poly 2 clipperD
 a3639101f805ee8b poly 2 rectclip
 00f1040c805d2ea7 poly 2 simplify
 0d995614d2021ea5 poly 2 triangulate
@@ -17,7 +17,7 @@ a3639101f805ee8b poly 2 rectclip
 8721beaf9cfed424 poly 3 paths
 a752156d55336483 poly 3 tree
 908454880f8a4262 poly 3 reverse+collinear
-135d9c1c722df21c poly 3 clipperD
+ed60aa7094a37565 poly 3 clipperD
 1eb4c5e946dd6eb1 poly 3 offset Square -7
 9f054c41fccc56c9 poly 3 offset Square 4.5
 eaa94cdd44bf529f poly 3 offset Square 23
@@ -37,7 +37,7 @@ e84f3d70ae1a4127 poly 3 simplify
 46c6488488ea0fa4 poly 4 paths
 1e838d6aeec1295b poly 4 tree
 943ea93f7e975e5a poly 4 reverse+collinear
-5ede769dbc15cef8 poly 4 clipperD
+dcf063793e6a877d poly 4 clipperD
 a014d1a740c357b4 poly 4 rectclip
 94d2089b95ac6c67 poly 4 simplify
 be8cc23919221a68 poly 4 triangulate
@@ -45,7 +45,7 @@ be8cc23919221a68 poly 4 triangulate
 fbd9ed9b059bf97f poly 5 paths
 bb4bd335cd1f5576 poly 5 tree
 eede53a95bee018f poly 5 reverse+collinear
-5213146f1a9baf2d poly 5 clipperD
+ffba9dc84e079ac1 poly 5 clipperD
 92f8a14837aa6fd0 poly 5 rectclip
 8937aea8ef7e944b poly 5 simplify
 f3711281bffba490 poly 5 triangulate
@@ -54,7 +54,7 @@ f3711281bffba490 poly 5 triangulate
 ee1353dd326270da poly 6 paths
 4bd393e1b358f549 poly 6 tree
 3a6a6e587b2ed901 poly 6 reverse+collinear
-92e3f2c1090843e5 poly 6 clipperD
+c9b98fb787b22d28 poly 6 clipperD
 cf96de086b9bce0d poly 6 offset Square -7
 01577e3e9b5709e3 poly 6 offset Square 4.5
 0112b79e55b6bb53 poly 6 offset Square 23
@@ -74,7 +74,7 @@ a7e842f0622e4926 poly 6 triangulate
 1629909adf13872e poly 7 paths
 d576a3dce893953b poly 7 tree
 b7c45940f193b482 poly 7 reverse+collinear
-744466742119efad poly 7 clipperD
+14c9335a4fdc026d poly 7 clipperD
 43b4cbcbabd188cf poly 7 rectclip
 4c726f9f10d2e4e7 poly 7 simplify
 cca9041c06a6ead6 poly 7 triangulate
@@ -82,7 +82,7 @@ cca9041c06a6ead6 poly 7 triangulate
 c06d3176a4851422 poly 8 paths
 52931132b9d76d8c poly 8 tree
 13e72c2635afb035 poly 8 reverse+collinear
-fc41a3e06d63cfe8 poly 8 clipperD
+1cbca49805c6e9dd poly 8 clipperD
 6e85eab19344f4fe poly 8 rectclip
 1317b2cd05190d1d poly 8 simplify
 270c3bdf65d3b2ff poly 8 triangulate
@@ -90,7 +90,7 @@ fc41a3e06d63cfe8 poly 8 clipperD
 1484b0bc1033f2de poly 9 paths
 96aca03f9ea4415a poly 9 tree
 d28f4a76940e4093 poly 9 reverse+collinear
-45aaffc1d1611b04 poly 9 clipperD
+0e92e3e986b5ab8d poly 9 clipperD
 ed85c15e7b28133d poly 9 offset Square -7
 2effe91142d90ba8 poly 9 offset Square 4.5
 3dd9be6d8bfaa361 poly 9 offset Square 23
@@ -110,7 +110,7 @@ b239c2254b13ff33 poly 9 triangulate
 db62cbb1a7d01383 poly 10 paths
 825f491596e0d66c poly 10 tree
 cf97650ef6425aa0 poly 10 reverse+collinear
-de6a107c0d2db894 poly 10 clipperD
+ba854b9c66696d6c poly 10 clipperD
 5022f43f8bbc4df7 poly 10 rectclip
 462765e14c04cc65 poly 10 simplify
 29dbf6eec525373f poly 10 triangulate
@@ -119,7 +119,7 @@ fd0deacb1f4b779a poly 10 minkowski
 faa27bf05c93cef3 poly 11 paths
 363f1eeffd3a3ed6 poly 11 tree
 ea5eeb06ac814552 poly 11 reverse+collinear
-5d3559b7f232ddf9 poly 11 clipperD
+44248e6b0daafce4 poly 11 clipperD
 d177f0491195853c poly 11 rectclip
 49cfca2730270b9d poly 11 simplify
 c10a79e22f0b6dd2 poly 11 triangulate
@@ -127,7 +127,7 @@ c10a79e22f0b6dd2 poly 11 triangulate
 aaf4bf9af06a6fe4 poly 12 paths
 26d6c5715968e8d4 poly 12 tree
 f8c03b590fd80d11 poly 12 reverse+collinear
-bc8cc2ab312df754 poly 12 clipperD
+a4fda46e8fcee38d poly 12 clipperD
 71659e4c6b7c4f53 poly 12 offset Square -7
 56e2cc50d9f9cf6b poly 12 offset Square 4.5
 7aa16217c71f7ea6 poly 12 offset Square 23
@@ -147,7 +147,7 @@ e68b741dfb7acf85 poly 12 simplify
 122ab4641b70caf8 poly 13 paths
 abc4a558485d2145 poly 13 tree
 f7d929a999f87270 poly 13 reverse+collinear
-ee26c33bc3aae690 poly 13 clipperD
+cb71a96a0d4dcf39 poly 13 clipperD
 3cc4c89144b536d1 poly 13 rectclip
 46a91ca231f796ed poly 13 simplify
 2a1c3bb292cac7e8 poly 13 triangulate
@@ -155,7 +155,7 @@ ee26c33bc3aae690 poly 13 clipperD
 66bfe6dca6aad01a poly 14 paths
 37d081abd1109ebf poly 14 tree
 46e966cba2d163df poly 14 reverse+collinear
-b2b0893caff0acc8 poly 14 clipperD
+22d9ca680c8e6be8 poly 14 clipperD
 8d16bfa800726142 poly 14 rectclip
 aac1e42c6ae6bdd5 poly 14 simplify
 9afbcc9893b05520 poly 14 triangulate
@@ -163,7 +163,7 @@ aac1e42c6ae6bdd5 poly 14 simplify
 ecc7af21b259d576 poly 15 paths
 4194a421b9220a93 poly 15 tree
 4bab7165e85adc72 poly 15 reverse+collinear
-bf2b7402cf626e7c poly 15 clipperD
+80dd78dfb42946dd poly 15 clipperD
 59bea8b8cbad1ef4 poly 15 offset Square -7
 c1a6f4e801725919 poly 15 offset Square 4.5
 d992d4d7e85286d3 poly 15 offset Square 23
@@ -184,7 +184,7 @@ b4770c57795ef24e poly 15 offset Miter 23
 58def8ca9b9d3f3e poly 16 paths
 9254bdf984863815 poly 16 tree
 e8ac6d60cf739c94 poly 16 reverse+collinear
-00c57c7804fb9f7d poly 16 clipperD
+740ad1122433253d poly 16 clipperD
 b87306ec79cd0d73 poly 16 rectclip
 d7d6ccd08a0e0fa5 poly 16 simplify
 e51505068c42bc25 poly 16 triangulate
@@ -192,7 +192,7 @@ e51505068c42bc25 poly 16 triangulate
 8c4f3b563ba72527 poly 17 paths
 47fe37c452a47eef poly 17 tree
 0386a8778b1a44bf poly 17 reverse+collinear
-e85a3248c493be25 poly 17 clipperD
+22d9d946a44cb831 poly 17 clipperD
 52f2aa27452f5277 poly 17 rectclip
 365b30f487d18c45 poly 17 simplify
 83048a7a1e7a756d poly 17 triangulate
@@ -200,7 +200,7 @@ e85a3248c493be25 poly 17 clipperD
 2568521a0d9ef69f poly 18 paths
 a77d9bd420319cd7 poly 18 tree
 bfba5a8db34c8387 poly 18 reverse+collinear
-8f6702cf8069e4d1 poly 18 clipperD
+baf8eeec96f49830 poly 18 clipperD
 15b02299b83c6382 poly 18 offset Square -7
 db946fd4cb804e97 poly 18 offset Square 4.5
 7b94ef18caed7c60 poly 18 offset Square 23
@@ -220,7 +220,7 @@ da02c0f68aa02c45 poly 18 pip
 70ed7c866a1cc8cf poly 19 paths
 4a72c0b379f75d7c poly 19 tree
 6e15340b5c563364 poly 19 reverse+collinear
-c4e8a9893383fef8 poly 19 clipperD
+f397f5b99bd69620 poly 19 clipperD
 ed7ca345f78e1859 poly 19 rectclip
 165868cdfce9acf5 poly 19 simplify
 50fc8df947925c81 poly 19 triangulate
@@ -228,7 +228,7 @@ ed7ca345f78e1859 poly 19 rectclip
 eaa8bdb93bd197e4 poly 20 paths
 089e512ae4d1c118 poly 20 tree
 6feebd92af058df4 poly 20 reverse+collinear
-dc7f32a6b119c4dd poly 20 clipperD
+ffbd8847f1691719 poly 20 clipperD
 7a114341c7dbbba3 poly 20 rectclip
 be480718faabb2ff poly 20 simplify
 f5a9ef7adad0e319 poly 20 triangulate
@@ -237,7 +237,7 @@ bf5150b38a41f1e1 poly 20 minkowski
 269980ad78363ec2 poly 21 paths
 d353ea2ba099aba2 poly 21 tree
 e538c73c6eb9aae3 poly 21 reverse+collinear
-a81a957dde63f841 poly 21 clipperD
+8dda6c0378090691 poly 21 clipperD
 0bc8b836d413cbca poly 21 offset Square -7
 6c94166cd020b0d4 poly 21 offset Square 4.5
 e6c7caae556b24ab poly 21 offset Square 23
@@ -257,7 +257,7 @@ c74b007a91b22e46 poly 21 pip
 7ce3da2458c1b33c poly 22 paths
 f3bfbe4f905cceff poly 22 tree
 9062d3fdca92b7bd poly 22 reverse+collinear
-e979196534349838 poly 22 clipperD
+aff669f7a9a369bc poly 22 clipperD
 2ffaa601a0d20722 poly 22 rectclip
 157a7f4f9af92325 poly 22 simplify
 5eebb3bc0ad02d45 poly 22 triangulate
@@ -265,7 +265,7 @@ e979196534349838 poly 22 clipperD
 1b85fca72f52fb66 poly 23 paths
 9fe17bd11919fefa poly 23 tree
 df8ab7c29b3068a0 poly 23 reverse+collinear
-d84ade7f80b0a5a4 poly 23 clipperD
+5ccc0b8eb36a609c poly 23 clipperD
 a159a29f8cf02d2a poly 23 rectclip
 6fc8ad61f33e9517 poly 23 simplify
 dc82af3209a69f7a poly 23 triangulate
@@ -273,7 +273,7 @@ dc82af3209a69f7a poly 23 triangulate
 a3414ac53e8a497d poly 24 paths
 a9a458af1fa0977a poly 24 tree
 545747e9e485e23a poly 24 reverse+collinear
-909615426c9623a0 poly 24 clipperD
+db1dc9767da9cc34 poly 24 clipperD
 a8c7f832281a39c5 poly 24 offset Square -7
 282055dd49b24880 poly 24 offset Square 4.5
 d1cb356e15c6bdd1 poly 24 offset Square 23
@@ -293,7 +293,7 @@ c2d86209b90abda5 poly 24 triangulate
 7abb95bc8b1e681b poly 25 paths
 4200fa1efbd968ce poly 25 tree
 9c5b4d6b55aef45e poly 25 reverse+collinear
-d158758e1f4a66b4 poly 25 clipperD
+40dd79ad082ad72c poly 25 clipperD
 b3b6d93888bbac47 poly 25 rectclip
 07d3eab00be67136 poly 25 simplify
 0dbea8a07aa26e15 poly 25 triangulate
@@ -302,7 +302,7 @@ b950c684d9491270 poly 25 minkowski
 e0194fed3d67d499 poly 26 paths
 84abb4103707a5d6 poly 26 tree
 c624ebb3502eef0a poly 26 reverse+collinear
-180edcd99bc97ae8 poly 26 clipperD
+5d1fd2fbf078226c poly 26 clipperD
 5d9159478e0817e2 poly 26 rectclip
 5db9bfc3fe3c9125 poly 26 simplify
 9ff2164ca2da1f05 poly 26 triangulate
@@ -310,7 +310,7 @@ c624ebb3502eef0a poly 26 reverse+collinear
 acf14f8cca146e8f poly 27 paths
 f558ea25ea1483a1 poly 27 tree
 912e4a8d554726cd poly 27 reverse+collinear
-a31f2296aa5f68f8 poly 27 clipperD
+802b0359e829bbe8 poly 27 clipperD
 d21f0a776507c038 poly 27 offset Square -7
 2e5850c8485fc572 poly 27 offset Square 4.5
 07088e9a57fb669d poly 27 offset Square 23
@@ -330,7 +330,7 @@ e682aa61e5c27419 poly 27 offset Miter 23
 279d1ebbe43006c0 poly 28 paths
 6fc936fca65f0299 poly 28 tree
 65680a7a8f4543ee poly 28 reverse+collinear
-6090b51483b6583f poly 28 clipperD
+33093768e8ac8a6f poly 28 clipperD
 12d2418c10559811 poly 28 rectclip
 2989b0243ab46a05 poly 28 simplify
 e0e8fdeb2d441363 poly 28 triangulate
@@ -338,7 +338,7 @@ c8b8178a293b1b25 poly 28 pip
 f0597ffea777d45a poly 29 paths
 c3749a0a22173747 poly 29 tree
 fd9135c88d75b9a6 poly 29 reverse+collinear
-90b69bfb0ab3f4b8 poly 29 clipperD
+c6457c04eab78f49 poly 29 clipperD
 8e9d44985104d07a poly 29 rectclip
 5d6ae98f9b854427 poly 29 simplify
 ffe876e1a2531d7d poly 29 triangulate
@@ -346,7 +346,7 @@ e42376a3dccde407 poly 29 pip
 d68850805403529c poly 30 paths
 360ba806d74258f6 poly 30 tree
 d4be3a171a4bf877 poly 30 reverse+collinear
-87fb33f8ce4ae5b1 poly 30 clipperD
+1cf34f12e9375f05 poly 30 clipperD
 02591c5b6d12b5aa poly 30 offset Square -7
 cf87525388883b74 poly 30 offset Square 4.5
 05f39c82eb60782a poly 30 offset Square 23
@@ -367,7 +367,7 @@ a6dd0e04eca0bce9 poly 30 offset Miter 4.5
 c583a4b9220955b7 poly 31 paths
 f9a32e4403a05754 poly 31 tree
 ff0aab6b11ca1515 poly 31 reverse+collinear
-c97a1b477767881d poly 31 clipperD
+287008ac023ede85 poly 31 clipperD
 04fcc669b17f3881 poly 31 rectclip
 97592b8264916487 poly 31 simplify
 0e20e7657a63ccc2 poly 31 triangulate
@@ -375,7 +375,7 @@ c97a1b477767881d poly 31 clipperD
 11ff58f731acac51 poly 32 paths
 394ccdd25fbab537 poly 32 tree
 2ea8a60a9bdc7556 poly 32 reverse+collinear
-1e304320e1278975 poly 32 clipperD
+1cd76cbd2e67df90 poly 32 clipperD
 7a00dc9f4fd2ec7a poly 32 rectclip
 99f997214acf6be7 poly 32 simplify
 bbd0a25912109a65 poly 32 triangulate
@@ -383,7 +383,7 @@ b31ddbb6ed1e5685 poly 32 pip
 0cad63e3fcc42899 poly 33 paths
 9babe53a81104dd8 poly 33 tree
 db2436068d6edf59 poly 33 reverse+collinear
-f62864b62ee17e45 poly 33 clipperD
+578e0366fb60ce5d poly 33 clipperD
 a8a940ef3514a80d poly 33 offset Square -7
 72d7da7e8770f7f3 poly 33 offset Square 4.5
 2190218f322c9c95 poly 33 offset Square 23
@@ -403,7 +403,7 @@ fda09c08ac0e41c7 poly 33 simplify
 30508c5044c759b2 poly 34 paths
 0f02b5172bc83ffe poly 34 tree
 c4ed64765f06847a poly 34 reverse+collinear
-dba0faa76738b565 poly 34 clipperD
+7296ede146ad8045 poly 34 clipperD
 ff30b141ec706b06 poly 34 rectclip
 8bcd646d8de38467 poly 34 simplify
 33fa74cd1c0c5f96 poly 34 triangulate
@@ -411,7 +411,7 @@ ff30b141ec706b06 poly 34 rectclip
 9dd0e43c079c87e0 poly 35 paths
 f17151639d7d8eb5 poly 35 tree
 a9a1ab297c8fa714 poly 35 reverse+collinear
-99ce9befce3a1030 poly 35 clipperD
+39c57751c2f0e8cc poly 35 clipperD
 49cbf5bdca0cca9e poly 35 rectclip
 fe38840a0b97f927 poly 35 simplify
 e53981844eac6ad4 poly 35 triangulate
@@ -420,7 +420,7 @@ e53981844eac6ad4 poly 35 triangulate
 d0475aab4fd69c31 poly 36 paths
 959c70f6df718eed poly 36 tree
 dc7dabefec31eb8c poly 36 reverse+collinear
-6e2d8c6126653ba0 poly 36 clipperD
+020d5d476dd9e2a9 poly 36 clipperD
 508d612f62dd57a1 poly 36 offset Square -7
 c2f42e1438226615 poly 36 offset Square 4.5
 cf89d19ba3d16dcd poly 36 offset Square 23
@@ -440,7 +440,7 @@ c83c25d839901ea7 poly 36 simplify
 baa24dc8344f134d poly 37 paths
 7fa95b8a1bed6b1f poly 37 tree
 06c90f4939735cfe poly 37 reverse+collinear
-c72fb4c9d6021d71 poly 37 clipperD
+e15ccd7871663755 poly 37 clipperD
 096d3c9c6a91e47d poly 37 rectclip
 683d7507a8744fa7 poly 37 simplify
 96c1da4cb4184fb9 poly 37 triangulate
@@ -448,7 +448,7 @@ c72fb4c9d6021d71 poly 37 clipperD
 26cc88c32e32c2bc poly 38 paths
 b99a4d37e6996118 poly 38 tree
 99c2e44578573619 poly 38 reverse+collinear
-da588435d96b2455 poly 38 clipperD
+417cfed3fc18994d poly 38 clipperD
 556e39591ada2526 poly 38 rectclip
 14bc4eb06a7c99c7 poly 38 simplify
 ffdd309bca4d504d poly 38 triangulate
@@ -456,7 +456,7 @@ ffdd309bca4d504d poly 38 triangulate
 a67f2eb644651f4a poly 39 paths
 8c301266afd9ed0b poly 39 tree
 966e413c76df971e poly 39 reverse+collinear
-aeb6137f95ca4084 poly 39 clipperD
+e07ab9b5dfc5c7b5 poly 39 clipperD
 c65f765fbfdb1702 poly 39 offset Square -7
 08d0962051ee16e5 poly 39 offset Square 4.5
 064659be76af999b poly 39 offset Square 23
@@ -476,7 +476,7 @@ bba72ce90afedaa6 poly 39 pip
 d1f0982edb015290 poly 40 paths
 697c990b411db795 poly 40 tree
 9192864aa1f44fa5 poly 40 reverse+collinear
-586debee5c2a4e78 poly 40 clipperD
+f0a19764f7c656a8 poly 40 clipperD
 cb8b0e9f02eebd19 poly 40 rectclip
 c2ef14e3c3abcf87 poly 40 simplify
 24d04485d173fb7e poly 40 triangulate
@@ -485,7 +485,7 @@ ecf85e2ddec739a6 poly 40 minkowski
 2021c63ef469be75 poly 41 paths
 d97c3553c42bbc17 poly 41 tree
 53e50b941fe39cb2 poly 41 reverse+collinear
-d94239381b2abcd0 poly 41 clipperD
+b5436debf788f079 poly 41 clipperD
 07fbf82cb5636af9 poly 41 rectclip
 f334cff38fa49bc7 poly 41 simplify
 482f542eb909ae00 poly 41 triangulate
@@ -493,7 +493,7 @@ f334cff38fa49bc7 poly 41 simplify
 40e60e8567495865 poly 42 paths
 5b79d9216a6d5cc8 poly 42 tree
 d05922b1adb52580 poly 42 reverse+collinear
-dd266a4cced0e554 poly 42 clipperD
+72e4b7f55293532c poly 42 clipperD
 9d99fd7db3a07516 poly 42 offset Square -7
 f3b2269f2be1db8f poly 42 offset Square 4.5
 99c22214f2ac0063 poly 42 offset Square 23
@@ -513,7 +513,7 @@ c1699b05366b5158 poly 42 rectclip
 b94c39c2f04563d7 poly 43 paths
 120f0ea3ba2a5b10 poly 43 tree
 59014254a2aea494 poly 43 reverse+collinear
-1a2faff27318559d poly 43 clipperD
+020a824f3e8c51a8 poly 43 clipperD
 9fc78ac6da1d7970 poly 43 rectclip
 4f302caeaff151ff poly 43 simplify
 f266ff7bd19da796 poly 43 triangulate
@@ -521,7 +521,7 @@ e7c13e3b6f901b87 poly 43 pip
 27c05f9fe36404b3 poly 44 paths
 441d23265d7caa24 poly 44 tree
 dfe65fa18cf7d384 poly 44 reverse+collinear
-b2bb0927737c8439 poly 44 clipperD
+0ea5493de28f988d poly 44 clipperD
 f65943001606c30a poly 44 rectclip
 31c42a7ea7050de5 poly 44 simplify
 aa9ebf0a843fef85 poly 44 triangulate
@@ -529,7 +529,7 @@ a8bd5c45802eb4e6 poly 44 pip
 69ddcd318ac78694 poly 45 paths
 be07058de133302f poly 45 tree
 00767688f6df1187 poly 45 reverse+collinear
-c3535ffc6ac0e343 poly 45 clipperD
+f491c30adf5022f3 poly 45 clipperD
 a1d61a84bb4235d7 poly 45 offset Square -7
 71f574ea551342ba poly 45 offset Square 4.5
 1deb17c2dc3cb909 poly 45 offset Square 23
@@ -550,7 +550,7 @@ ed71451227691f43 poly 45 minkowski
 093144defb87f224 poly 46 paths
 742bbeff2635d384 poly 46 tree
 037f7cfe343012cb poly 46 reverse+collinear
-f300fcf07a3e1c87 poly 46 clipperD
+4c25ff8c63ff9de7 poly 46 clipperD
 bc78aa56504ecda1 poly 46 rectclip
 a6f2e8cb0868082f poly 46 simplify
 472f462e45ab19eb poly 46 triangulate
@@ -558,7 +558,7 @@ fb8844a9aae2e125 poly 46 pip
 19c9303e4209d4e4 poly 47 paths
 54b3609ce1bd2b84 poly 47 tree
 32920c0b7ef03a8d poly 47 reverse+collinear
-9f2e55d2f4104401 poly 47 clipperD
+47af6f4aca85d781 poly 47 clipperD
 a227852d34ce0ead poly 47 rectclip
 4f7e7c8574fe68bd poly 47 simplify
 7093ee171393f045 poly 47 triangulate
@@ -566,7 +566,7 @@ b59d63a12ea00e86 poly 47 pip
 1eee61ed466305b8 poly 48 paths
 9603c68a8bb4059b poly 48 tree
 9806a317a94fcb4a poly 48 reverse+collinear
-b6e4441dc2bd0550 poly 48 clipperD
+5aeb00ca8e51f2f8 poly 48 clipperD
 3edb7490957c9414 poly 48 offset Square -7
 6a47fc67b68aa424 poly 48 offset Square 4.5
 35c09ef81aca32b9 poly 48 offset Square 23
@@ -586,7 +586,7 @@ a7292788ee60fc55 poly 48 rectclip
 8e06d3c185d86d95 poly 49 paths
 5f4a3b4ada155d89 poly 49 tree
 8ff58437bb43b243 poly 49 reverse+collinear
-dd2c3de7d9901ea3 poly 49 clipperD
+e6880f755a2eec83 poly 49 clipperD
 20519b77d5116824 poly 49 rectclip
 564ce30a1f6bf2f5 poly 49 simplify
 b49a1f8a2e8c5aa1 poly 49 triangulate
@@ -594,7 +594,7 @@ d5bfc42e11b30fa6 poly 49 pip
 7c6b143e73a30488 poly 50 paths
 42f04fd14695e4e3 poly 50 tree
 219542da4e19af3b poly 50 reverse+collinear
-eb6dec7430233a55 poly 50 clipperD
+fcb27da3473497e4 poly 50 clipperD
 393252f54425d05b poly 50 rectclip
 c3255ba26f620087 poly 50 simplify
 f0e06ce1332002fa poly 50 triangulate
@@ -603,7 +603,7 @@ f0e06ce1332002fa poly 50 triangulate
 1250deb73acdb2f0 poly 51 paths
 013e29daa3f9edeb poly 51 tree
 291ca9e5d34e45c3 poly 51 reverse+collinear
-411d9ce43dca836c poly 51 clipperD
+c6859e755e037220 poly 51 clipperD
 5aa133cd170acd54 poly 51 offset Square -7
 5000b7e1c765f016 poly 51 offset Square 4.5
 a8faa5740725e7a7 poly 51 offset Square 23
@@ -623,7 +623,7 @@ bfb716cd645d02d6 poly 51 triangulate
 3e401c6099345010 poly 52 paths
 faa40b29996a113c poly 52 tree
 43d776c21031046d poly 52 reverse+collinear
-c18a92f4439ae52d poly 52 clipperD
+6288407041ff5605 poly 52 clipperD
 8888054a2e52cefa poly 52 rectclip
 354ccb4b7a8e530d poly 52 simplify
 33d7ad0d94500ec5 poly 52 triangulate
@@ -631,7 +631,7 @@ c18a92f4439ae52d poly 52 clipperD
 2e59054f37bbbee4 poly 53 paths
 2420a90a6b3cc3a1 poly 53 tree
 e3c6acd245c33d19 poly 53 reverse+collinear
-c7da8c356b3888e5 poly 53 clipperD
+300d67a65abd0260 poly 53 clipperD
 48edcca253b4e52a poly 53 rectclip
 eb3afe5ec81742f5 poly 53 simplify
 2635e40bb9bd6bd1 poly 53 triangulate
@@ -639,7 +639,7 @@ d7dc701580f36e67 poly 53 pip
 e5c98bc683e71bd0 poly 54 paths
 38419ae1e99e9c79 poly 54 tree
 616594f7a9660f19 poly 54 reverse+collinear
-1e81e0c2f3c975cd poly 54 clipperD
+ad46ba73cf6a6e0c poly 54 clipperD
 0a0ff4afd73c9b7c poly 54 offset Square -7
 eda3af1804b9306c poly 54 offset Square 4.5
 dbe3b9a256dbf71c poly 54 offset Square 23
@@ -659,7 +659,7 @@ add92ce76cff5627 poly 54 pip
 5980b51b61acda07 poly 55 paths
 7fec3e6d4fec6ee5 poly 55 tree
 1e81a203d185af45 poly 55 reverse+collinear
-8e686c534f0fa3e4 poly 55 clipperD
+1e0f144a429e9698 poly 55 clipperD
 a192035f2f7556b4 poly 55 rectclip
 dc185ee243eef45e poly 55 simplify
 aa97f6261fd0ec2d poly 55 triangulate
@@ -668,7 +668,7 @@ eeeac7fa0282b8f3 poly 55 minkowski
 d467e82d857ffb4b poly 56 paths
 886070c73805cbc3 poly 56 tree
 8c8c93c3735279a3 poly 56 reverse+collinear
-9dcd26e084a16dc5 poly 56 clipperD
+a9abfb589ab48e9c poly 56 clipperD
 e141b03915e59fe5 poly 56 rectclip
 6ab86cc998ef5e7b poly 56 simplify
 60fd575bd280c4b5 poly 56 triangulate
@@ -676,7 +676,7 @@ a2e0cd78c11f7706 poly 56 pip
 583f104380a74a1d poly 57 paths
 7e1438f5fd93a034 poly 57 tree
 b85d99d3f0089871 poly 57 reverse+collinear
-81da3cf12831e485 poly 57 clipperD
+6bf6e35dbe24f939 poly 57 clipperD
 7882bbae048a0eda poly 57 offset Square -7
 b97349f8ae2e71ec poly 57 offset Square 4.5
 6f4c3e25e790d205 poly 57 offset Square 23
@@ -696,7 +696,7 @@ b97349f8ae2e71ec poly 57 offset Miter 4.5
 1fb4bdca20387889 poly 58 paths
 5d0b10b1eda01aa3 poly 58 tree
 1872bf25b7d94fbe poly 58 reverse+collinear
-88efb667c50faf01 poly 58 clipperD
+6f6aef402b669f79 poly 58 clipperD
 f2ec627f4cc0c407 poly 58 rectclip
 98cd6069335fa309 poly 58 simplify
 c77f32cd5c95f045 poly 58 triangulate
@@ -704,7 +704,7 @@ c77f32cd5c95f045 poly 58 triangulate
 acaecc7c579da511 poly 59 paths
 d84b38c207c5c365 poly 59 tree
 5cbed9ce2683a49c poly 59 reverse+collinear
-fe23445e66b3fcf9 poly 59 clipperD
+e65e650e60c211a9 poly 59 clipperD
 cac03c264fb02587 poly 59 rectclip
 0dd50564ec7cb34b poly 59 simplify
 6f2cdaeb5e73c061 poly 59 triangulate
@@ -712,7 +712,7 @@ cac03c264fb02587 poly 59 rectclip
 8a414d68e95ec3d4 poly 60 paths
 1ea3979440e4876c poly 60 tree
 53b74a7d8ff9eef9 poly 60 reverse+collinear
-660e928a3c1844e8 poly 60 clipperD
+97f14cd1dab232d1 poly 60 clipperD
 73d8bdec9c18be48 poly 60 offset Square -7
 5053ad625f0eb8c5 poly 60 offset Square 4.5
 7d6c2f65c989615e poly 60 offset Square 23
@@ -733,7 +733,7 @@ d99f678ce538f59d poly 60 triangulate
 097b735d66edac07 poly 61 paths
 ed04ed47c8d05434 poly 61 tree
 92f9026d57c5f4dc poly 61 reverse+collinear
-9ca69947ca50f640 poly 61 clipperD
+82d78b2f8b527a70 poly 61 clipperD
 2c54853445d7b477 poly 61 rectclip
 b6c2a3918a9c420d poly 61 simplify
 ccd988596f27fb8e poly 61 triangulate
@@ -741,7 +741,7 @@ ccd988596f27fb8e poly 61 triangulate
 256398556e090214 poly 62 paths
 ab34cea8ad8c2f67 poly 62 tree
 744d00d7a6ac6b72 poly 62 reverse+collinear
-3a2e5589194e6f11 poly 62 clipperD
+a3a82df8c330ff6d poly 62 clipperD
 d3257f9c2b4a1fa0 poly 62 rectclip
 d184e730ca613f07 poly 62 simplify
 8e444dbe1d8f093d poly 62 triangulate
@@ -749,7 +749,7 @@ d184e730ca613f07 poly 62 simplify
 f89ec0eed39b515c poly 63 paths
 92dc842300b20792 poly 63 tree
 4f9efa7103fc96ae poly 63 reverse+collinear
-2c4bade9852e1040 poly 63 clipperD
+0488a18536dbb4f0 poly 63 clipperD
 b0340bef37bd902b poly 63 offset Square -7
 2701841dfa74430c poly 63 offset Square 4.5
 2b105040baa7df0a poly 63 offset Square 23
@@ -769,7 +769,7 @@ db964f3fcc554585 poly 63 simplify
 2f4182d9caed1f8e poly 64 paths
 bd88ebe8a3021240 poly 64 tree
 47f07e7370afe0a8 poly 64 reverse+collinear
-c95f5ed77640a624 poly 64 clipperD
+4005f8874e38f434 poly 64 clipperD
 e35d4beaa95cde8b poly 64 rectclip
 7299e5ed1d5ab62c poly 64 simplify
 9cfb7ee55fea8605 poly 64 triangulate
@@ -777,7 +777,7 @@ f84dfcb2ca335a85 poly 64 pip
 8ff042e79c875c99 poly 65 paths
 39c4a536e1791825 poly 65 tree
 1a3034a6bc81726d poly 65 reverse+collinear
-31fd9cb5bb834d28 poly 65 clipperD
+3b6dcc1d16fffd78 poly 65 clipperD
 74681a5f0d84ff24 poly 65 rectclip
 b0d381491bc8aea5 poly 65 simplify
 2d3387338530c7fd poly 65 triangulate
@@ -786,7 +786,7 @@ b0d381491bc8aea5 poly 65 simplify
 9f63c161fb75f24b poly 66 paths
 18e73cdadababf17 poly 66 tree
 466271877cc66283 poly 66 reverse+collinear
-961de0c57867f120 poly 66 clipperD
+e156a8ff569eb11c poly 66 clipperD
 2cb455b6b49a3ccc poly 66 offset Square -7
 84fe32627494be79 poly 66 offset Square 4.5
 8c70995e7c95d84b poly 66 offset Square 23
@@ -806,7 +806,7 @@ da26fc7c2cd6ec05 poly 66 triangulate
 9d39e685134cd33d poly 67 paths
 29f7ac60c869763e poly 67 tree
 bc30e7c8e9358fe3 poly 67 reverse+collinear
-f886a59d1397f024 poly 67 clipperD
+cdb1fd27dc1bdac0 poly 67 clipperD
 1eaf1d12c6feb2b5 poly 67 rectclip
 05fe9d7e84982ce9 poly 67 simplify
 1813e4933026ed75 poly 67 triangulate
@@ -814,7 +814,7 @@ b443f49493819b65 poly 67 pip
 c702a006678c3848 poly 68 paths
 bce36127bdd66089 poly 68 tree
 6be71be32ac722dc poly 68 reverse+collinear
-9d666a6aa5120924 poly 68 clipperD
+e55a1cad3211bc61 poly 68 clipperD
 6a6113f64a155e72 poly 68 rectclip
 ff3d61ea68cf62c9 poly 68 simplify
 c22bcdb3db66fce1 poly 68 triangulate
@@ -822,7 +822,7 @@ c22bcdb3db66fce1 poly 68 triangulate
 3680e09db74ec536 poly 69 paths
 1ea1c389d3a04377 poly 69 tree
 4f8aba5df32f1d1a poly 69 reverse+collinear
-63c689193f260af4 poly 69 clipperD
+399e651484603710 poly 69 clipperD
 917ae6982dea962a poly 69 offset Square -7
 34880b05ce3cf3f4 poly 69 offset Square 4.5
 19f1b2c93d93294f poly 69 offset Square 23
@@ -842,7 +842,7 @@ ce14340498840ae6 poly 69 simplify
 db009e97f4552a88 poly 70 paths
 afdb8abfa1ca499e poly 70 tree
 bfa8f2c6246cfebe poly 70 reverse+collinear
-2fa0b40c9c06fb15 poly 70 clipperD
+21a133006fa8ffb8 poly 70 clipperD
 fb420d36ea796f63 poly 70 rectclip
 483513f192ebfa2d poly 70 simplify
 a37692378467edc1 poly 70 triangulate
@@ -851,7 +851,7 @@ d0a35e2aa8637e69 poly 70 minkowski
 8c31de32fddd6bd1 poly 71 paths
 b4e64d0a9dba09ae poly 71 tree
 f017a31c5b72c4ba poly 71 reverse+collinear
-2f36aba9f17737fd poly 71 clipperD
+cea20b757f37d6ac poly 71 clipperD
 98917f9ba1d3a2d2 poly 71 rectclip
 0198a8743c43e66d poly 71 simplify
 210362b05b84e3a5 poly 71 triangulate
@@ -859,7 +859,7 @@ f69862268cb9fd25 poly 71 pip
 3990bc61b42eabf6 poly 72 paths
 30d969396759fbac poly 72 tree
 45db1e95712361a5 poly 72 reverse+collinear
-50c022a5db9eae7d poly 72 clipperD
+4e4c10d66333732d poly 72 clipperD
 d5d0bde21669ccd6 poly 72 offset Square -7
 6d4967ff286c90c8 poly 72 offset Square 4.5
 060b0a113d1ed3b1 poly 72 offset Square 23
@@ -879,7 +879,7 @@ cb85c18eac008251 poly 72 triangulate
 ef5ee5bed3b7391e poly 73 paths
 d60257a23d0377bd poly 73 tree
 7404472bccb75ba5 poly 73 reverse+collinear
-ff3ce6b243738799 poly 73 clipperD
+2f02eb9ad7c679b0 poly 73 clipperD
 0e8646bf44f1fe5e poly 73 rectclip
 189382446c03444d poly 73 simplify
 534e286ca6bb270d poly 73 triangulate
@@ -887,7 +887,7 @@ e6a349d29ab9d246 poly 73 pip
 59c65df1e288fbfe poly 74 paths
 880c26cf26846952 poly 74 tree
 adf0b1900e3f453b poly 74 reverse+collinear
-d847b167722ed87d poly 74 clipperD
+d1817239ad559e49 poly 74 clipperD
 156ecd76fae8326c poly 74 rectclip
 5c1413ffeff04d38 poly 74 simplify
 9dab940725a4042d poly 74 triangulate
@@ -895,7 +895,7 @@ d847b167722ed87d poly 74 clipperD
 1da8f36201fa0274 poly 75 paths
 55cfdd30fd34819d poly 75 tree
 668e4ff8eb3f3339 poly 75 reverse+collinear
-347f6248d92eede9 poly 75 clipperD
+5232277107cc2c94 poly 75 clipperD
 8a7b65859ff846ec poly 75 offset Square -7
 d2bd04774fb81991 poly 75 offset Square 4.5
 09bf10f3d2ce619a poly 75 offset Square 23
@@ -916,7 +916,7 @@ c0302b39feb3fbda poly 75 minkowski
 67055e3fa867b15c poly 76 paths
 a561ef4a5b4ed0a7 poly 76 tree
 cabd303ec1c96bbf poly 76 reverse+collinear
-fc8065925c94b421 poly 76 clipperD
+1d15655c16c44320 poly 76 clipperD
 156ecd76fae8326c poly 76 rectclip
 5c1413ffeff04d38 poly 76 simplify
 9dab940725a4042d poly 76 triangulate
@@ -924,7 +924,7 @@ f8237b3e8fc12f24 poly 76 pip
 9474dad44a141d41 poly 77 paths
 f096b513305122c3 poly 77 tree
 57a89f363ed550ef poly 77 reverse+collinear
-b257fda27fdef318 poly 77 clipperD
+be8aee142171fb54 poly 77 clipperD
 9bec0188220525f5 poly 77 rectclip
 15ef78e10af24de5 poly 77 simplify
 420febe658c18855 poly 77 triangulate
@@ -932,7 +932,7 @@ bb5b19edd15c4ac5 poly 77 pip
 14e9cdcdcd35c818 poly 78 paths
 fab026c26c0adf9a poly 78 tree
 bee9f91b584e18b8 poly 78 reverse+collinear
-419163f2a69ba42d poly 78 clipperD
+d073589f75ebc581 poly 78 clipperD
 fb37f1ea2a08d0fa poly 78 offset Square -7
 1ea09d1c49b73fcf poly 78 offset Square 4.5
 feee991d4aa51d9e poly 78 offset Square 23
@@ -952,7 +952,7 @@ fb37f1ea2a08d0fa poly 78 offset Miter -7
 9d24c26ac7dd20bc poly 79 paths
 931e2d0f67ade5ad poly 79 tree
 fd66227c7ab7dbef poly 79 reverse+collinear
-9b045d58802150a0 poly 79 clipperD
+7e71ccb97e3ba2b5 poly 79 clipperD
 454b16e8c657b671 poly 79 rectclip
 9d4df13763e87ead poly 79 simplify
 f8bec4ac2c268b79 poly 79 triangulate
@@ -969,7 +969,7 @@ f8bec4ac2c268b79 poly 80 triangulate
 6aed6aeed42c741a poly 81 paths
 f1fd67aff55f6d79 poly 81 tree
 a2eb7a0dd66aace5 poly 81 reverse+collinear
-7be023d73686ed78 poly 81 clipperD
+e272b3f2cbe26528 poly 81 clipperD
 7e72e9046f604c21 poly 81 offset Square -7
 c625334cd552b413 poly 81 offset Square 4.5
 b99dfada4231be75 poly 81 offset Square 23
@@ -989,7 +989,7 @@ e92e072affa29a71 poly 81 offset Miter -7
 129ea9e1710fb6e3 poly 82 paths
 b95acd2100833fa7 poly 82 tree
 a7ed2bd5b260a353 poly 82 reverse+collinear
-f944ba6402b1dc0d poly 82 clipperD
+955fe508c565fd14 poly 82 clipperD
 2bacbbf7734d2945 poly 82 rectclip
 ea1444fc865e1275 poly 82 simplify
 89c1a132bb69da8d poly 82 triangulate
@@ -997,7 +997,7 @@ ea1444fc865e1275 poly 82 simplify
 818fda6ac41f88a5 poly 83 paths
 bfa5a65c8c142936 poly 83 tree
 9923106237363f06 poly 83 reverse+collinear
-896b50d9c3b130e4 poly 83 clipperD
+ed64472a0b861e10 poly 83 clipperD
 bab470f07649c0da poly 83 rectclip
 fba174e0d7e2cfd5 poly 83 simplify
 b5d33ece34f8780d poly 83 triangulate
@@ -1005,7 +1005,7 @@ cc62ba888e3fce06 poly 83 pip
 72d75a9d0286ba07 poly 84 paths
 8d9a9db45b3628a4 poly 84 tree
 3bbbe402b14edd70 poly 84 reverse+collinear
-3f03168402da8ef9 poly 84 clipperD
+f7f7371f8b9b4bc4 poly 84 clipperD
 6035f7784e88c09f poly 84 offset Square -7
 f38ec6d68b2900ca poly 84 offset Square 4.5
 33912bd20d38cb8b poly 84 offset Square 23
@@ -1025,7 +1025,7 @@ cf45b6a3519f7fbd poly 84 triangulate
 53661bbc2238d894 poly 85 paths
 11f759b869303082 poly 85 tree
 38971fb992049617 poly 85 reverse+collinear
-59f3479463dd73f8 poly 85 clipperD
+8a4713469f521a19 poly 85 clipperD
 f3da7c1879d18b31 poly 85 rectclip
 74f6390386da01fd poly 85 simplify
 53b35281f9e5a931 poly 85 triangulate
@@ -1034,7 +1034,7 @@ f5c9001aa2898219 poly 85 minkowski
 caca8f1cc0ebbebd poly 86 paths
 d7d5a6881fea84c6 poly 86 tree
 0e64a242ef3344dd poly 86 reverse+collinear
-aac804b11c45feeb poly 86 clipperD
+3e2593016770371b poly 86 clipperD
 9a5e6151180c1ca7 poly 86 rectclip
 828269c0d6f55a05 poly 86 simplify
 2cf5ede9143e8512 poly 86 triangulate
@@ -1042,7 +1042,7 @@ aac804b11c45feeb poly 86 clipperD
 6ea2b2df259d119c poly 87 paths
 3b2f68d975b3ae73 poly 87 tree
 0c621fa7d7caaa88 poly 87 reverse+collinear
-abf6642107d50cb6 poly 87 clipperD
+8bdf831e5f9fb4e7 poly 87 clipperD
 2e7ebee7bf9b8fbb poly 87 offset Square -7
 60392d276398cfef poly 87 offset Square 4.5
 04f67d484ccf5997 poly 87 offset Square 23
@@ -1062,7 +1062,7 @@ bcafacf5a791cbc4 poly 87 pip
 887248fcea4e99c8 poly 88 paths
 01a4358a3315a4de poly 88 tree
 74ea5345002df473 poly 88 reverse+collinear
-935a8438a6aca611 poly 88 clipperD
+91b805cb5b89f851 poly 88 clipperD
 97130686d953b0b3 poly 88 rectclip
 15a956c3b69a50cd poly 88 simplify
 331092058f48d531 poly 88 triangulate
@@ -1070,7 +1070,7 @@ bcafacf5a791cbc4 poly 87 pip
 9063b262e13a0bc8 poly 89 paths
 9fd9648a36cac996 poly 89 tree
 03b7175b65b246a5 poly 89 reverse+collinear
-854b39f272619e4d poly 89 clipperD
+d3ad3198813359c4 poly 89 clipperD
 cadb18acda5553b6 poly 89 rectclip
 5e7fc3b9a605e9c5 poly 89 simplify
 7b591c1f5b722a85 poly 89 triangulate
@@ -1078,7 +1078,7 @@ ea2d516b05950cc4 poly 89 pip
 f0ae4bf03d3c2b6c poly 90 paths
 8d97f523bea8e87a poly 90 tree
 1ce4a60d1d8b7a59 poly 90 reverse+collinear
-250269169bd19d8a poly 90 clipperD
+b054d0ec56be3f0b poly 90 clipperD
 1f7d2a324075f492 poly 90 offset Square -7
 9927f2d783002173 poly 90 offset Square 4.5
 a608b020e2126971 poly 90 offset Square 23
@@ -1099,7 +1099,7 @@ eb180766b58575f5 poly 90 simplify
 6cbd3d8c924eb0bf poly 91 paths
 dae389753c04e47e poly 91 tree
 0cd3b264b987d85e poly 91 reverse+collinear
-ff0536adaf94a564 poly 91 clipperD
+4efbf8ca1076a1b8 poly 91 clipperD
 53d54ec1206b8485 poly 91 rectclip
 68ddbe1552bcbd35 poly 91 simplify
 38126805d8abe205 poly 91 triangulate
@@ -1107,7 +1107,7 @@ a2fcbad1e0ce4505 poly 91 pip
 5ad8efc7111bcaa8 poly 92 paths
 70d50d93ef578fd7 poly 92 tree
 ae89bc6a6a2c852a poly 92 reverse+collinear
-51a524aa6b902028 poly 92 clipperD
+0f49a29405c009e9 poly 92 clipperD
 d68ba21ca27577de poly 92 rectclip
 59dbf77df34efc5d poly 92 simplify
 bed7927ce1cfae76 poly 92 triangulate
@@ -1115,7 +1115,7 @@ bed7927ce1cfae76 poly 92 triangulate
 a69e458805206ddc poly 93 paths
 34e58f20e6c5a115 poly 93 tree
 427b76530f363c01 poly 93 reverse+collinear
-1b1108e92e652f20 poly 93 clipperD
+afba6c692180f848 poly 93 clipperD
 47948b6b58645ba0 poly 93 offset Square -7
 1dc4fc8f77a7e54f poly 93 offset Square 4.5
 260be4e3f8da181b poly 93 offset Square 23
@@ -1135,7 +1135,7 @@ b47cdce367711a8c poly 93 offset Bevel 23
 e468e5d4725e0624 poly 94 paths
 90b970d8447ce539 poly 94 tree
 fa08985f6b1710d5 poly 94 reverse+collinear
-fd5f6371bbce5f14 poly 94 clipperD
+f5852228bf7ac154 poly 94 clipperD
 efc8742c203e7fb9 poly 94 rectclip
 9931692c739c8e35 poly 94 simplify
 a968272111f842d1 poly 94 triangulate
@@ -1143,7 +1143,7 @@ a968272111f842d1 poly 94 triangulate
 d4509cb4f15a5718 poly 95 paths
 fb4f06086af85d6e poly 95 tree
 f795c1d052062ed6 poly 95 reverse+collinear
-ff340715b49a1cb0 poly 95 clipperD
+1ea3abc0c7f2b2b8 poly 95 clipperD
 81d7b53f9c8a5835 poly 95 rectclip
 bf5db91f39a8858d poly 95 simplify
 9d431e6f6de4aaf5 poly 95 triangulate
@@ -1152,7 +1152,7 @@ ac994f38ed236515 poly 95 minkowski
 165ee7a7dfe64c64 poly 96 paths
 fe315bb7551a487f poly 96 tree
 9438443aa4a4f33a poly 96 reverse+collinear
-37d1992ddac07584 poly 96 clipperD
+083aa394546b76b5 poly 96 clipperD
 89c94722b383ce54 poly 96 offset Square -7
 e5ae57c1d4f83e10 poly 96 offset Square 4.5
 adf9a520b407b628 poly 96 offset Square 23
@@ -1172,7 +1172,7 @@ a4bb45e6fb0c5b95 poly 96 triangulate
 8699a8691b92b497 poly 97 paths
 5730bac515d07801 poly 97 tree
 bea2f5efa0efdea9 poly 97 reverse+collinear
-1669016cdc450c55 poly 97 clipperD
+dab70c242880da04 poly 97 clipperD
 e107a5317d2fa689 poly 97 rectclip
 28b4fe4c142bb5d5 poly 97 simplify
 b4a2b4c4dc0a46d5 poly 97 triangulate
@@ -1180,7 +1180,7 @@ b4a2b4c4dc0a46d5 poly 97 triangulate
 ec3ed07ce6cf6244 poly 98 paths
 1a171bc83f263f15 poly 98 tree
 42693e7914f9104d poly 98 reverse+collinear
-d9d49ef07e180d54 poly 98 clipperD
+9c20ed730be060b0 poly 98 clipperD
 c57661178250a4f3 poly 98 rectclip
 d5a166d5d1412f25 poly 98 simplify
 0b95a50a287411a5 poly 98 triangulate
@@ -1188,7 +1188,7 @@ be111fc506c3d706 poly 98 pip
 74c4e734aebc0c04 poly 99 paths
 1add5647bc85bd74 poly 99 tree
 81cb134be7cce8f9 poly 99 reverse+collinear
-ac94e3b695ceb58d poly 99 clipperD
+f5287dabcd44b9f1 poly 99 clipperD
 012e7437b7e42ce4 poly 99 offset Square -7
 0b48094ea5bacd61 poly 99 offset Square 4.5
 6448fb6bbc9f6a96 poly 99 offset Square 23
@@ -1208,7 +1208,7 @@ b2ee4dc1e8c051d5 poly 99 triangulate
 cb3f138c7e6448f8 poly 100 paths
 d9a7314b9056a42c poly 100 tree
 c0142e9542dae578 poly 100 reverse+collinear
-ea6b645fa2da1b55 poly 100 clipperD
+8afdc93642dc4900 poly 100 clipperD
 2136195d43d8f173 poly 100 rectclip
 7b2613d0ec314d8a poly 100 simplify
 973fb1b2377f3055 poly 100 triangulate
@@ -1217,7 +1217,7 @@ ea6b645fa2da1b55 poly 100 clipperD
 c0b5c12afe741416 poly 101 paths
 584b6775b47f908d poly 101 tree
 1073bef0e99ac8fe poly 101 reverse+collinear
-65917a89a02e2347 poly 101 clipperD
+34c4b4d961539597 poly 101 clipperD
 247807a524444c69 poly 101 rectclip
 d9ab77cfdf10f985 poly 101 simplify
 6e5f3142f198a915 poly 101 triangulate
@@ -1225,7 +1225,7 @@ d9ab77cfdf10f985 poly 101 simplify
 35b0e0be9a2c8b9a poly 102 paths
 970e6f6b02c72146 poly 102 tree
 49e15599756b71f5 poly 102 reverse+collinear
-f2253f06fbacc0b8 poly 102 clipperD
+fa00c3dc261bd160 poly 102 clipperD
 fd2e6d73d6886627 poly 102 offset Square -7
 d22529c17107c0c5 poly 102 offset Square 4.5
 e804c6c14bc6750c poly 102 offset Square 23
@@ -1245,7 +1245,7 @@ ebc76437fa40e587 poly 102 pip
 cb83bf0008036cbf poly 103 paths
 043dd2be206aa449 poly 103 tree
 cb724bbcfd8ee110 poly 103 reverse+collinear
-625c183652abc179 poly 103 clipperD
+4713fdb84f6a9575 poly 103 clipperD
 7edcf1a906404a3f poly 103 rectclip
 8f09c9d8c4f4af85 poly 103 simplify
 7829d1a06769137d poly 103 triangulate
@@ -1253,7 +1253,7 @@ cb724bbcfd8ee110 poly 103 reverse+collinear
 aa8a5a1db318b698 poly 104 paths
 6cab859f43293f82 poly 104 tree
 28a59549073ee43a poly 104 reverse+collinear
-06930e26bc7f9b08 poly 104 clipperD
+dd317f9f2decb3d8 poly 104 clipperD
 73c172256dc8eccf poly 104 rectclip
 431a219d82ee54cd poly 104 simplify
 8d54911338848f26 poly 104 triangulate
@@ -1261,7 +1261,7 @@ d77a9307bbfb4046 poly 104 pip
 2888ebe30b0b9720 poly 105 paths
 25a4d00e219d1231 poly 105 tree
 e3c1e8cf18e31cf4 poly 105 reverse+collinear
-83a985b4d4d24e69 poly 105 clipperD
+5f1046e6d9157a8d poly 105 clipperD
 418ebcc24380ca5d poly 105 offset Square -7
 1321aec590e03410 poly 105 offset Square 4.5
 a9e84a9875648aba poly 105 offset Square 23
@@ -1282,7 +1282,7 @@ f4e416315595a946 poly 105 pip
 07d1d64aee7b0d62 poly 106 paths
 f3689bd256b8e308 poly 106 tree
 68dfaadb2513385c poly 106 reverse+collinear
-57dd1ddec05def36 poly 106 clipperD
+2551d635f4b3f98f poly 106 clipperD
 491f68821fd147bb poly 106 rectclip
 a68b7a74bbaf64ed poly 106 simplify
 8b5ab0715073a1be poly 106 triangulate
@@ -1290,7 +1290,7 @@ a68b7a74bbaf64ed poly 106 simplify
 c380e17a7de1ecd2 poly 107 paths
 0931706cbf584f0f poly 107 tree
 3344118a50b095ea poly 107 reverse+collinear
-a807679ca89323f9 poly 107 clipperD
+da159dd31036be59 poly 107 clipperD
 9375d41a7168485a poly 107 rectclip
 d87060868857ee65 poly 107 simplify
 d69baf32023c1d8c poly 107 triangulate
@@ -1298,7 +1298,7 @@ d69baf32023c1d8c poly 107 triangulate
 335d4785c69309f4 poly 108 paths
 6204ac83541ff0e6 poly 108 tree
 7139c54e0adb2e6e poly 108 reverse+collinear
-0dce911171058b60 poly 108 clipperD
+8844c192df26b430 poly 108 clipperD
 d37bde03174ac73a poly 108 offset Square -7
 b67d30f145f90f85 poly 108 offset Square 4.5
 69263a1ef903e9b3 poly 108 offset Square 23
@@ -1326,7 +1326,7 @@ b45ea45d921d2765 poly 109 simplify
 760b89331b853378 poly 110 paths
 4949aef83f562534 poly 110 tree
 262532f511959249 poly 110 reverse+collinear
-143325712a4038e5 poly 110 clipperD
+da94ff0beb699b9d poly 110 clipperD
 23e20465d5416cea poly 110 rectclip
 019e749f14480c9d poly 110 simplify
 c8d8fc5f91d8e920 poly 110 triangulate
@@ -1335,7 +1335,7 @@ c8d8fc5f91d8e920 poly 110 triangulate
 acdc63c7a444ff37 poly 111 paths
 e88bf58e172fe092 poly 111 tree
 3b4c4e15278c31aa poly 111 reverse+collinear
-c6139196aa9650f7 poly 111 clipperD
+efab3d942cc55c77 poly 111 clipperD
 86e95c8950264812 poly 111 offset Square -7
 69b268fe32786afe poly 111 offset Square 4.5
 f9f1e9cda535cad2 poly 111 offset Square 23
@@ -1355,7 +1355,7 @@ a465e52bd3e2ccf0 poly 111 offset Miter 4.5
 0ff139271d0f8f84 poly 112 paths
 cf360c21710fd1a4 poly 112 tree
 2659833324d95ee4 poly 112 reverse+collinear
-fde0c762491a4e80 poly 112 clipperD
+0583decacfea9630 poly 112 clipperD
 e5ad5d6bedc51913 poly 112 rectclip
 6f07c9905218cfc7 poly 112 simplify
 2def2c63eca4a113 poly 112 triangulate
@@ -1363,7 +1363,7 @@ e5ad5d6bedc51913 poly 112 rectclip
 0fd848718e984a04 poly 113 paths
 b197000c38a5f1db poly 113 tree
 4eb94546ddad4b9e poly 113 reverse+collinear
-bd113455ed2304b9 poly 113 clipperD
+34a25242a847d9dc poly 113 clipperD
 3a74bebc6ef9eadd poly 113 rectclip
 4f9ff54ddbd9ce75 poly 113 simplify
 4df0de2fc02d34ed poly 113 triangulate
@@ -1371,7 +1371,7 @@ ba16cad468282fc4 poly 113 pip
 30bc8a0b74e0fe57 poly 114 paths
 0f8b5ad48e33674e poly 114 tree
 671f20a062ed89d2 poly 114 reverse+collinear
-b6c4dd24fd8807ac poly 114 clipperD
+812b2dc74097a244 poly 114 clipperD
 5e4aaef506247413 poly 114 offset Square -7
 3e619409ecd7f31d poly 114 offset Square 4.5
 5db6cecd334a54de poly 114 offset Square 23
@@ -1391,7 +1391,7 @@ fcb84096ef9cdcd8 poly 114 triangulate
 b603db0902e49650 poly 115 paths
 46b6d1d2dd41ea96 poly 115 tree
 1e0cc1148851e38e poly 115 reverse+collinear
-b1b08421ebff649e poly 115 clipperD
+020ca1a743222380 poly 115 clipperD
 20744f6f65983562 poly 115 rectclip
 cb8c3c9e09b679c7 poly 115 simplify
 394e10ee9626fd29 poly 115 triangulate
@@ -1400,7 +1400,7 @@ cb6206cb29c27f84 poly 115 pip
 f2fc60bc317600d1 poly 116 paths
 12f5f44b0c741492 poly 116 tree
 8386116bdc07e9d6 poly 116 reverse+collinear
-5a959ac43c7c40f4 poly 116 clipperD
+173dfe7d3ab0f204 poly 116 clipperD
 e431ae7b8e495467 poly 116 rectclip
 730760a9fcfe695d poly 116 simplify
 83900e733f006c29 poly 116 triangulate
@@ -1408,7 +1408,7 @@ ee94dface88e2b44 poly 116 pip
 44cfbdfa4a0787b0 poly 117 paths
 958da6f5d00dcdd4 poly 117 tree
 d5b7e9858bec4b7c poly 117 reverse+collinear
-83b01df9603b1afc poly 117 clipperD
+9c0da6cd47d87bdc poly 117 clipperD
 e90bcf4842776ec7 poly 117 offset Square -7
 f2a3fe3f2171ee11 poly 117 offset Square 4.5
 de4c5d43fdd74b65 poly 117 offset Square 23
@@ -1428,7 +1428,7 @@ d7ae764691cf2e01 poly 117 triangulate
 6ebf6341a2a7b770 poly 118 paths
 c82bdb7b19e9d648 poly 118 tree
 c20a840e3c7c0108 poly 118 reverse+collinear
-5727e4e9452aeeb4 poly 118 clipperD
+bdbb0950a334839c poly 118 clipperD
 680f424e1ef64304 poly 118 rectclip
 4ebbfb0d814f7e8d poly 118 simplify
 4cb6d42bcf69f391 poly 118 triangulate
@@ -1436,7 +1436,7 @@ c20a840e3c7c0108 poly 118 reverse+collinear
 3458041a51b9cc74 poly 119 paths
 5a11101ad755f259 poly 119 tree
 e85ac2a7f126cf81 poly 119 reverse+collinear
-92f3a3751e9910f9 poly 119 clipperD
+15d54775746f4581 poly 119 clipperD
 79c684c70d1d1a22 poly 119 rectclip
 9869294749427227 poly 119 simplify
 f5cef1541cb6afb7 poly 119 triangulate
@@ -1444,7 +1444,7 @@ f5cef1541cb6afb7 poly 119 triangulate
 704045ee5319a079 poly 120 paths
 f7cfbae3c7034b2a poly 120 tree
 2d96f9f07db9d0c3 poly 120 reverse+collinear
-bb85d3e2ba573c14 poly 120 clipperD
+6e5a650f105a31cc poly 120 clipperD
 06d7bf00824cb64f poly 120 offset Square -7
 1d7bb8d64471ce13 poly 120 offset Square 4.5
 de905cbb3979d142 poly 120 offset Square 23
@@ -1465,7 +1465,7 @@ ebbcb2eba9dfe6c6 poly 120 pip
 0a65a10a35d9c0b2 poly 121 paths
 e49dc11367900739 poly 121 tree
 eec899a64635da88 poly 121 reverse+collinear
-12dfba0fa7dbf60d poly 121 clipperD
+3643b1e89df4eca9 poly 121 clipperD
 550f99706d08c273 poly 121 rectclip
 16e8e8b0f7880805 poly 121 simplify
 9dda3c7a1e043aae poly 121 triangulate
@@ -1473,7 +1473,7 @@ eec899a64635da88 poly 121 reverse+collinear
 ede0a0b51d68a036 poly 122 paths
 37ad24d6c39dc225 poly 122 tree
 fb69249fbf5c36fa poly 122 reverse+collinear
-f2756a9bf9ee7d9d poly 122 clipperD
+ed7f30719b05824d poly 122 clipperD
 bd449d637ec32bff poly 122 rectclip
 63b06a8bc003cf25 poly 122 simplify
 cb48d030618fb9e6 poly 122 triangulate
@@ -1481,7 +1481,7 @@ e5440847b852e425 poly 122 pip
 e2e17474c31cbcd9 poly 123 paths
 4480bc0b4e24a0a1 poly 123 tree
 47d828edb357234b poly 123 reverse+collinear
-8fdb975b367ea7f8 poly 123 clipperD
+ecc7960957ea802c poly 123 clipperD
 8e266b2c565622b5 poly 123 offset Square -7
 86bf20fefc118a3e poly 123 offset Square 4.5
 4ef3041f59820f5a poly 123 offset Square 23
@@ -1501,7 +1501,7 @@ a735787b3afcfc99 poly 123 offset Miter -7
 cf0059c3375e9520 poly 124 paths
 832fb2f7fdf98445 poly 124 tree
 a664f291e3df0ba8 poly 124 reverse+collinear
-66969914dfd8dca4 poly 124 clipperD
+0b1e08544d642cd8 poly 124 clipperD
 d752120f4805fb79 poly 124 rectclip
 35fdece1ceacb39d poly 124 simplify
 320c6834492dd525 poly 124 triangulate
@@ -1509,7 +1509,7 @@ d752120f4805fb79 poly 124 rectclip
 cdb0a5c527d99431 poly 125 paths
 df8512d0016d293b poly 125 tree
 d56ea89dcf0113a1 poly 125 reverse+collinear
-f2e4507bb5c78f50 poly 125 clipperD
+6f9c1d168c719c94 poly 125 clipperD
 9fb6c85524b44cbc poly 125 rectclip
 096698b9a0ce40cd poly 125 simplify
 a9b6612567538c51 poly 125 triangulate
@@ -1518,7 +1518,7 @@ e27362abb7dba41a poly 125 minkowski
 c82aaa497bdf085a poly 126 paths
 35d73a4dfc3de3a3 poly 126 tree
 3a8dd1cf216f0b2c poly 126 reverse+collinear
-6823c87d71659349 poly 126 clipperD
+c320b3d7613fa90c poly 126 clipperD
 7f6da68cd3ded589 poly 126 offset Square -7
 21c85da693f48756 poly 126 offset Square 4.5
 a3bfe48a3a02dd3c poly 126 offset Square 23
@@ -1538,7 +1538,7 @@ e8b2ce0bce7fdaa4 poly 126 rectclip
 8f6bd95cbb1d6969 poly 127 paths
 00e40135b1c59913 poly 127 tree
 d304835c8f0aa277 poly 127 reverse+collinear
-d91da35d968f0700 poly 127 clipperD
+71730de53718d75d poly 127 clipperD
 e624debcdd629436 poly 127 rectclip
 0841c2a7601f21c3 poly 127 simplify
 9f12ff733b714a0d poly 127 triangulate
@@ -1546,7 +1546,7 @@ f0875c2e6fc5fd85 poly 127 pip
 6e043de011e4c637 poly 128 paths
 accd9103cfc1d2c6 poly 128 tree
 92914d94eccc75af poly 128 reverse+collinear
-56bddf441f8be024 poly 128 clipperD
+c8538ef37fc506a4 poly 128 clipperD
 b131a8aee1c927a2 poly 128 rectclip
 fc8fc98c2ae868ad poly 128 simplify
 0e8a13e868f552be poly 128 triangulate
@@ -1554,7 +1554,7 @@ b4d134f7576defe4 poly 128 pip
 7125fba146955da0 poly 129 paths
 f0ff304129402489 poly 129 tree
 f7f42548a00bbae7 poly 129 reverse+collinear
-a3c49206f9f093d1 poly 129 clipperD
+dbc478969c82d5e8 poly 129 clipperD
 4d21718af63ba6a8 poly 129 offset Square -7
 9c579abb01999669 poly 129 offset Square 4.5
 1db509afaa92cb03 poly 129 offset Square 23
@@ -1574,7 +1574,7 @@ c2bd7200233a4ba2 poly 129 triangulate
 df1681e81a6d6368 poly 130 paths
 d80eaeec6744b4ff poly 130 tree
 f21405deb80de352 poly 130 reverse+collinear
-255a450251f1ba79 poly 130 clipperD
+0128729f94150c4c poly 130 clipperD
 7aad6132308b476d poly 130 rectclip
 48469a2706ee4d5d poly 130 simplify
 3aa9c795e54def89 poly 130 triangulate
@@ -1583,7 +1583,7 @@ f21405deb80de352 poly 130 reverse+collinear
 6eff08cbec612e8d poly 131 paths
 34673ae68aef3465 poly 131 tree
 deebaa850b73db07 poly 131 reverse+collinear
-1115bbb91e43a904 poly 131 clipperD
+09958f98548204a5 poly 131 clipperD
 61f088a7401f43ff poly 131 rectclip
 49aa97048ad57475 poly 131 simplify
 c347d871de7a8f1f poly 131 triangulate
@@ -1591,7 +1591,7 @@ d861fc564ad55c85 poly 131 pip
 7f7a665363e8e3b9 poly 132 paths
 fc33e6a6be25a91f poly 132 tree
 037c15dd554335a2 poly 132 reverse+collinear
-6b312b289edf5551 poly 132 clipperD
+b765c9b2dfe535cd poly 132 clipperD
 346a3a67a14ebd1b poly 132 offset Square -7
 be277b4e4e0fe8a9 poly 132 offset Square 4.5
 76ddc40e9ee1a433 poly 132 offset Square 23
@@ -1611,7 +1611,7 @@ b0a4bc03d1c6a1e3 poly 132 offset Miter 23
 fce12905de22b753 poly 133 paths
 f7bc1daa06fa86a3 poly 133 tree
 6aafb8f2d6c716da poly 133 reverse+collinear
-7cc26e4e9c548a04 poly 133 clipperD
+3d4ec4572a14fe90 poly 133 clipperD
 691d2beeee3772f7 poly 133 rectclip
 2d88ef804f17a915 poly 133 simplify
 f740e7eb91ca1f25 poly 133 triangulate
@@ -1619,7 +1619,7 @@ f740e7eb91ca1f25 poly 133 triangulate
 5152359df7d9e13f poly 134 paths
 17089ec35d724ea7 poly 134 tree
 15dd9718469d7627 poly 134 reverse+collinear
-58831154071e1610 poly 134 clipperD
+63f40d68aa572b40 poly 134 clipperD
 e1da20975b604cfc poly 134 rectclip
 680575af7d1819f5 poly 134 simplify
 d8838617073e8e57 poly 134 triangulate
@@ -1627,7 +1627,7 @@ f98cbdce79c56265 poly 134 pip
 fefc8200b2c6e97a poly 135 paths
 bee2c3f4d50071b1 poly 135 tree
 1be072f45265adde poly 135 reverse+collinear
-ad773ab7483bcb90 poly 135 clipperD
+b1b0429ff3831ce9 poly 135 clipperD
 dba464f3697bdd67 poly 135 offset Square -7
 4258602499f27a26 poly 135 offset Square 4.5
 35d0e8bc9f8a94ab poly 135 offset Square 23
@@ -1648,7 +1648,7 @@ ce5cde00e843ed7e poly 135 minkowski
 fcaa5c9f97085386 poly 136 paths
 d5e4c97622fb0342 poly 136 tree
 ae8b9e85fa25702f poly 136 reverse+collinear
-e1b41743ade165c4 poly 136 clipperD
+7ca49c60b2097448 poly 136 clipperD
 b4092d5b4a183c62 poly 136 rectclip
 da1561f457ec08dd poly 136 simplify
 c390ed04da4e4429 poly 136 triangulate
@@ -1656,7 +1656,7 @@ c390ed04da4e4429 poly 136 triangulate
 d1c2338769cbf384 poly 137 paths
 3a40646df758a00d poly 137 tree
 54c23e3d7379f781 poly 137 reverse+collinear
-fb1990889a9cba98 poly 137 clipperD
+9d26071e165842a5 poly 137 clipperD
 20d404f661dfc7c6 poly 137 rectclip
 0df9c0d86441a97d poly 137 simplify
 353d8d570d74f368 poly 137 triangulate
@@ -1664,7 +1664,7 @@ fb1990889a9cba98 poly 137 clipperD
 cdb529a49e87e998 poly 138 paths
 f8f4643e5bd04d1a poly 138 tree
 4073ccecf29fe65e poly 138 reverse+collinear
-dcadc7baa0a6b054 poly 138 clipperD
+87cb5e0c8d23d5a9 poly 138 clipperD
 655146e089e3c8f6 poly 138 offset Square -7
 8dbfc36252253e27 poly 138 offset Square 4.5
 7cd3f84f556b2472 poly 138 offset Square 23
@@ -1684,7 +1684,7 @@ d9a474c5f23a7c74 poly 138 triangulate
 4e58c8ea2e99bc92 poly 139 paths
 71aebdcbad5dba92 poly 139 tree
 ddc7e513b9712a6c poly 139 reverse+collinear
-43becb362ac79900 poly 139 clipperD
+ae759bafffd782b1 poly 139 clipperD
 d216f95c3a4c3ff0 poly 139 rectclip
 4cdf114ca5b71865 poly 139 simplify
 86229df485cb5646 poly 139 triangulate
@@ -1692,7 +1692,7 @@ d216f95c3a4c3ff0 poly 139 rectclip
 795e4b2ba8b74fae poly 140 paths
 5e8784f665d0c438 poly 140 tree
 af683da469e3a242 poly 140 reverse+collinear
-58e57be007f5024c poly 140 clipperD
+9e99a9de667b559c poly 140 clipperD
 559baeabd34cf9d6 poly 140 rectclip
 a3dc133c6aa096f0 poly 140 simplify
 5b96875ac0872da4 poly 140 triangulate
@@ -1701,7 +1701,7 @@ e8ffc2bbcc2ac5a9 poly 140 minkowski
 307287a148fa23c5 poly 141 paths
 aa27b239c38a655c poly 141 tree
 eae5652d790e2cc9 poly 141 reverse+collinear
-fbc8966ca7b3ab5c poly 141 clipperD
+9fd78bb7664b76b5 poly 141 clipperD
 10a8180e548f0a14 poly 141 offset Square -7
 b1bb78cdb0ecba82 poly 141 offset Square 4.5
 b38d8c54214f6779 poly 141 offset Square 23
@@ -1721,7 +1721,7 @@ a5f40c12958ab11c poly 141 triangulate
 c63cd95e8f94631a poly 142 paths
 4dab8e84e64dd9fd poly 142 tree
 068681ed5d7c5edd poly 142 reverse+collinear
-a8c3fab1222e06a4 poly 142 clipperD
+ee868b4653f80ba9 poly 142 clipperD
 0cac18ae04b44e31 poly 142 rectclip
 262b687118a4871d poly 142 simplify
 9d9d578bdb842cc1 poly 142 triangulate
@@ -1729,7 +1729,7 @@ d0dd1bed728a7465 poly 142 pip
 559ea2495ed8547b poly 143 paths
 2908c8a10ad740ad poly 143 tree
 0e2efaa94e7c01e2 poly 143 reverse+collinear
-a3bb9e5b5ddb5cc1 poly 143 clipperD
+b69cda1eba650fbc poly 143 clipperD
 6d28ac0ab4b3938b poly 143 rectclip
 81b469fda368d3e5 poly 143 simplify
 0ffbcc4c077b3489 poly 143 triangulate
@@ -1737,7 +1737,7 @@ a3bb9e5b5ddb5cc1 poly 143 clipperD
 9ba6f314826367f8 poly 144 paths
 67a3c40e886c187c poly 144 tree
 ddcb8250fc8f2a69 poly 144 reverse+collinear
-99228560c432c6e0 poly 144 clipperD
+ae63edaa2ce1db28 poly 144 clipperD
 56639beb890201b8 poly 144 offset Square -7
 f4476d7ecbb4924f poly 144 offset Square 4.5
 6ae5d65c3258c79d poly 144 offset Square 23
@@ -1757,7 +1757,7 @@ f57efb0ccbd48626 poly 144 pip
 7829cc131e9a75c2 poly 145 paths
 9085c5e124ed354c poly 145 tree
 6cd993d575358242 poly 145 reverse+collinear
-a547132021b25518 poly 145 clipperD
+4ba906a868550c3c poly 145 clipperD
 0bdf81f214e2f516 poly 145 rectclip
 f2aa823220b2ab3d poly 145 simplify
 0a8acf252b25a339 poly 145 triangulate
@@ -1766,7 +1766,7 @@ f2aa823220b2ab3d poly 145 simplify
 ded389015254db7d poly 146 paths
 689262a137a7fe2d poly 146 tree
 138517c001a69fd7 poly 146 reverse+collinear
-c682fbde8683c0b4 poly 146 clipperD
+a9abe38ad8b9dc88 poly 146 clipperD
 e6e8d52113d9a979 poly 146 rectclip
 5ac2d9eb5023c4cd poly 146 simplify
 cf49fb62948dbdb1 poly 146 triangulate
@@ -1774,7 +1774,7 @@ cf49fb62948dbdb1 poly 146 triangulate
 52c39f92f1e6dc99 poly 147 paths
 53ad734523bbc318 poly 147 tree
 e43c0a47d69e0d70 poly 147 reverse+collinear
-550e1c0e3e919a54 poly 147 clipperD
+784f0f9931f22bed poly 147 clipperD
 1288d4667114b91d poly 147 offset Square -7
 2bc9f9c0142eca50 poly 147 offset Square 4.5
 cb06b10d78e7ee65 poly 147 offset Square 23
@@ -1794,7 +1794,7 @@ f997b55e97ca6e00 poly 147 triangulate
 e9586ebc8c5488da poly 148 paths
 91e6f40b49450978 poly 148 tree
 6bb376d9ac8d10e1 poly 148 reverse+collinear
-b4f501c7528ab994 poly 148 clipperD
+1e46423d704f3e81 poly 148 clipperD
 a31ee7896e38758e poly 148 rectclip
 2eda7989b308cb41 poly 148 simplify
 8cfb939d79ea9cc5 poly 148 triangulate
@@ -1802,7 +1802,7 @@ a31ee7896e38758e poly 148 rectclip
 7d408dd857ffc87a poly 149 paths
 5d0032c4f24810f5 poly 149 tree
 890d8c35b38a7924 poly 149 reverse+collinear
-be7c1578b63b6cdd poly 149 clipperD
+7f126c18b6a6fde1 poly 149 clipperD
 aa20a5f31c5ece42 poly 149 rectclip
 359525e1b44be37d poly 149 simplify
 6a9053f8a5af7975 poly 149 triangulate
@@ -1810,7 +1810,7 @@ aa20a5f31c5ece42 poly 149 rectclip
 7f93041c2dcc183e poly 150 paths
 9d9e01dc4ee9b710 poly 150 tree
 0d5fb0f261b589bf poly 150 reverse+collinear
-eaeb375659efba0c poly 150 clipperD
+1599cb97c0425368 poly 150 clipperD
 9122f4834b54ec5e poly 150 offset Square -7
 6078b4f83c1a0f61 poly 150 offset Square 4.5
 a7cd7cfe61365441 poly 150 offset Square 23
@@ -1831,7 +1831,7 @@ fef1d66df937caf1 poly 150 simplify
 5723fb2e5a6327d9 poly 151 paths
 b0cbe91dcf26b33d poly 151 tree
 58c484f7605b7da9 poly 151 reverse+collinear
-95fd04787204d1e9 poly 151 clipperD
+ac7be23cdab4ccd0 poly 151 clipperD
 49e6da8361f74134 poly 151 rectclip
 c001eed22cd8d4a5 poly 151 simplify
 93514860e020756c poly 151 triangulate
@@ -1839,7 +1839,7 @@ c001eed22cd8d4a5 poly 151 simplify
 fe5af62246363a4d poly 152 paths
 917b2ba79e9b76ab poly 152 tree
 ba44d983c062b3b2 poly 152 reverse+collinear
-798272fe31f4c7b0 poly 152 clipperD
+8a584e33345d54fd poly 152 clipperD
 c60462244b63f439 poly 152 rectclip
 8f36f2ce4c58fe8c poly 152 simplify
 02b2d60cae101e77 poly 152 triangulate
@@ -1847,7 +1847,7 @@ c60462244b63f439 poly 152 rectclip
 80dce72add8eec8d poly 153 paths
 faff0d35f27f60d1 poly 153 tree
 56946e668075b656 poly 153 reverse+collinear
-aa221c0ff9b9f2ec poly 153 clipperD
+557dbbecc17a5348 poly 153 clipperD
 50b46f622e37fac5 poly 153 offset Square -7
 1bf74d12e7125b7f poly 153 offset Square 4.5
 ff504e5aa0288d64 poly 153 offset Square 23
@@ -1867,7 +1867,7 @@ d2e85d5666bf2c86 poly 153 pip
 58475ce69957abd1 poly 154 paths
 4a853f396e72a6f6 poly 154 tree
 d4c5623b490871e0 poly 154 reverse+collinear
-847297a57032e538 poly 154 clipperD
+9bf9e8f1ead18e89 poly 154 clipperD
 229b92b3ec39c678 poly 154 rectclip
 6d6d8a324057302d poly 154 simplify
 bd578442ea526859 poly 154 triangulate
@@ -1875,7 +1875,7 @@ ad99a936df20f045 poly 154 pip
 3a2ff1c75d5e2d3d poly 155 paths
 0555e289bb068eca poly 155 tree
 e63b78253a395b33 poly 155 reverse+collinear
-76b5a06fbfef68b0 poly 155 clipperD
+e1648eeb9b2dcb94 poly 155 clipperD
 2884c168460e60aa poly 155 rectclip
 d10fcc472dc3b00d poly 155 simplify
 b44628952dab072f poly 155 triangulate
@@ -1884,7 +1884,7 @@ f0fe6b9cc61deac0 poly 155 minkowski
 5566a62c464a05f6 poly 156 paths
 aedb504636f97ed3 poly 156 tree
 28b160daf2a61d9b poly 156 reverse+collinear
-b62957881fff0d4d poly 156 clipperD
+e4104fc6a33d83a4 poly 156 clipperD
 954e9f86d848e16f poly 156 offset Square -7
 865127a65d8e4d23 poly 156 offset Square 4.5
 6c6c43e7fc37d5e9 poly 156 offset Square 23
@@ -1904,7 +1904,7 @@ ab108cce74531726 poly 156 pip
 65c691ea2f65b087 poly 157 paths
 ce6f3fb4266ffe6e poly 157 tree
 97e4651f1b2f0b5c poly 157 reverse+collinear
-f356b7d9db22e68d poly 157 clipperD
+3b452d91c9388e01 poly 157 clipperD
 6a43972e88220a2e poly 157 rectclip
 1d4065eba086f42d poly 157 simplify
 643b971d79af33f7 poly 157 triangulate
@@ -1912,7 +1912,7 @@ e3e56a9656cb6a45 poly 157 pip
 b2ee3156d1ac1a06 poly 158 paths
 4850683c8b0d7661 poly 158 tree
 2cb09122bc05679e poly 158 reverse+collinear
-048d9dbc4b6ffd54 poly 158 clipperD
+fe59f6286c836dd1 poly 158 clipperD
 b884a6aed5ae7c45 poly 158 rectclip
 e41a104a4a0791dd poly 158 simplify
 8df1595f75c795c1 poly 158 triangulate
@@ -1920,7 +1920,7 @@ c9f7cdfdb13a8de5 poly 158 pip
 0043d38be6f1cfa9 poly 159 paths
 784bad8d64d5ae85 poly 159 tree
 697e7816552f73e7 poly 159 reverse+collinear
-ec868377d95fd224 poly 159 clipperD
+c29dff4a4fb8521c poly 159 clipperD
 7c9ac0c473742d08 poly 159 offset Square -7
 6889eb3da9d7bf91 poly 159 offset Square 4.5
 ea9c701bd93f2280 poly 159 offset Square 23
@@ -1940,7 +1940,7 @@ adcee950ce1e6265 poly 159 pip
 6f1fc2cb66661706 poly 160 paths
 d660896978b42684 poly 160 tree
 1582826ba3df117a poly 160 reverse+collinear
-fea4362535cfe9d0 poly 160 clipperD
+ba9cc96d903e63bc poly 160 clipperD
 46dda34abc0a3a3e poly 160 rectclip
 3124fd346a63823f poly 160 simplify
 c8d8e51a27350bfe poly 160 triangulate
@@ -1949,7 +1949,7 @@ c8d8e51a27350bfe poly 160 triangulate
 520269da43a5ed88 poly 161 paths
 925ed20f396f737d poly 161 tree
 f400f1f02f5dcb2d poly 161 reverse+collinear
-f9cb3cf9942b17d2 poly 161 clipperD
+da92e78e5393ce0f poly 161 clipperD
 c12acf7b2e3bc81a poly 161 rectclip
 a4626c7a4b232985 poly 161 simplify
 521b792ff4c731e8 poly 161 triangulate
@@ -1957,7 +1957,7 @@ a4626c7a4b232985 poly 161 simplify
 b327ae3c955070a5 poly 162 paths
 f83195b6bca8ba4e poly 162 tree
 2d58dcf742f891ce poly 162 reverse+collinear
-aee3fcfd5d1e01e1 poly 162 clipperD
+4c47a1d9ff127da1 poly 162 clipperD
 69840a581c30d7ed poly 162 offset Square -7
 be665af22f81a26a poly 162 offset Square 4.5
 d0169715ef3fdeaa poly 162 offset Square 23
@@ -1977,7 +1977,7 @@ d52e7912ec077aae poly 162 offset Miter -7
 284daf9c9a4918aa poly 163 paths
 84a28ee7ff9daf0a poly 163 tree
 c66937babafe270d poly 163 reverse+collinear
-95c3c0248e592ba8 poly 163 clipperD
+dc414ebdbd55ac59 poly 163 clipperD
 6e7b1c157805fce0 poly 163 rectclip
 887367de63d06bb9 poly 163 simplify
 3146a8e410d89412 poly 163 triangulate
@@ -1985,7 +1985,7 @@ c66937babafe270d poly 163 reverse+collinear
 83100df4269a4796 poly 164 paths
 be034566e9ca2b27 poly 164 tree
 2520fa356158f9fb poly 164 reverse+collinear
-d66a5df89f9abb4c poly 164 clipperD
+aa0ffb78a7e33111 poly 164 clipperD
 25dd8e065687dc55 poly 164 rectclip
 969254d66bf08acd poly 164 simplify
 40112190305c69b1 poly 164 triangulate
@@ -1993,7 +1993,7 @@ dd040c8aa04ee986 poly 164 pip
 e50815a8ca54ad0d poly 165 paths
 d7fdfdc62f839f2c poly 165 tree
 cb2afa9bd7ea3105 poly 165 reverse+collinear
-7c0329d348175f14 poly 165 clipperD
+f00cb74113416274 poly 165 clipperD
 ed797923bee50eef poly 165 offset Square -7
 56427347b18ab4a4 poly 165 offset Square 4.5
 3f8ffd433d8484dd poly 165 offset Square 23
@@ -2014,7 +2014,7 @@ e945af706a9a0971 poly 165 triangulate
 e50815a8ca54ad0d poly 166 paths
 d7fdfdc62f839f2c poly 166 tree
 cb2afa9bd7ea3105 poly 166 reverse+collinear
-7c0329d348175f14 poly 166 clipperD
+f00cb74113416274 poly 166 clipperD
 b4cc5fde10a44074 poly 166 rectclip
 ef02c2eeeb076fb5 poly 166 simplify
 e945af706a9a0971 poly 166 triangulate
@@ -2022,7 +2022,7 @@ d1665093ae664de7 poly 166 pip
 4ff906f4dd23caf7 poly 167 paths
 b7cfe101870912f2 poly 167 tree
 62a675ba6f24c0a1 poly 167 reverse+collinear
-c7e319bea3850c7e poly 167 clipperD
+15c36869350b2116 poly 167 clipperD
 386cf644113965ee poly 167 rectclip
 6178582b575db925 poly 167 simplify
 6920bae022573134 poly 167 triangulate
@@ -2030,7 +2030,7 @@ c7e319bea3850c7e poly 167 clipperD
 6accc46595a0c121 poly 168 paths
 c8814b41729988a8 poly 168 tree
 438cc20bd1a002bf poly 168 reverse+collinear
-42765ea02eaa6eab poly 168 clipperD
+8bd588b76a1a8f0e poly 168 clipperD
 33dd17b56633d8fe poly 168 offset Square -7
 e4b5a18d4f0922a2 poly 168 offset Square 4.5
 9030e930664d9f3f poly 168 offset Square 23
@@ -2050,7 +2050,7 @@ b8b93bfb833413ed poly 168 simplify
 05765d285604814e poly 169 paths
 7984b0c5c5d3c297 poly 169 tree
 dc924284b05574d3 poly 169 reverse+collinear
-f201ff03014b5e10 poly 169 clipperD
+d6622044730d618d poly 169 clipperD
 11ad82a855f1be6a poly 169 rectclip
 4635fe26bfdf1481 poly 169 simplify
 49b7d37323730389 poly 169 triangulate
@@ -2058,7 +2058,7 @@ f201ff03014b5e10 poly 169 clipperD
 24fb2e4015b1ed8b poly 170 paths
 b390523bb7c4035b poly 170 tree
 0497314d6e3092b2 poly 170 reverse+collinear
-f806738e0f2387cd poly 170 clipperD
+a3016c41d2f36379 poly 170 clipperD
 37e7fc0481753d79 poly 170 rectclip
 1bf50b0a11137eb1 poly 170 simplify
 7475862ff7d31612 poly 170 triangulate
@@ -2067,7 +2067,7 @@ e556c0f562f089e6 poly 170 pip
 5f1c9c306fc134ec poly 171 paths
 919788f6377a4df0 poly 171 tree
 705883d0755a3365 poly 171 reverse+collinear
-748fd3946004b9f1 poly 171 clipperD
+dc5a0511c347d458 poly 171 clipperD
 346177cb98a3df5f poly 171 offset Square -7
 e1d7a4b480f414b4 poly 171 offset Square 4.5
 695fea920516a7a0 poly 171 offset Square 23
@@ -2087,7 +2087,7 @@ c002ec16d909a0a5 poly 171 pip
 67942af1c946a26c poly 172 paths
 cc60d8b9e40f68cd poly 172 tree
 4807f9894f4c52aa poly 172 reverse+collinear
-290824b4c1e1814f poly 172 clipperD
+4bc4f4f5875590cf poly 172 clipperD
 071f53cc597d685f poly 172 rectclip
 6019c88eb04c8650 poly 172 simplify
 a655f3c28b7b7a27 poly 172 triangulate
@@ -2095,7 +2095,7 @@ c8a5f53b816a8044 poly 172 pip
 9765f3bd244c9bf5 poly 173 paths
 ecbc8795b68c8b16 poly 173 tree
 790a8090156da393 poly 173 reverse+collinear
-51359af332b5804b poly 173 clipperD
+8ac58ddd1653277a poly 173 clipperD
 48ecfe07921875e6 poly 173 rectclip
 35b3325de0f2abd5 poly 173 simplify
 d2e21178b4a8e31b poly 173 triangulate
@@ -2103,7 +2103,7 @@ d2e21178b4a8e31b poly 173 triangulate
 79b3407986f01e42 poly 174 paths
 3db016683630f2a3 poly 174 tree
 be662c4ac7da4654 poly 174 reverse+collinear
-5cce1a0472de341f poly 174 clipperD
+59560a90a9027fae poly 174 clipperD
 f782d7665cdc64b0 poly 174 offset Square -7
 9a9e0d60edb83f10 poly 174 offset Square 4.5
 076f58c3a78a7c2c poly 174 offset Square 23
@@ -2123,7 +2123,7 @@ a8d8596ca9a8b584 poly 174 pip
 f12c39dd5bdf73d9 poly 175 paths
 914e56153814a210 poly 175 tree
 c5306e4c347cff38 poly 175 reverse+collinear
-c806050ea6296652 poly 175 clipperD
+3170e55fc1c440b2 poly 175 clipperD
 bcddcccbb0874c97 poly 175 rectclip
 030f434ade72358f poly 175 simplify
 c478c7829118aa94 poly 175 triangulate
@@ -2132,7 +2132,7 @@ c4f6dd9663dc27e6 poly 175 pip
 d9737b6324e9c9b2 poly 176 paths
 907609a278d6f966 poly 176 tree
 8ac12dda9dd87e21 poly 176 reverse+collinear
-a2c6e66eed1e6878 poly 176 clipperD
+a5785369ba99eb15 poly 176 clipperD
 bbcbe3463a5f7943 poly 176 rectclip
 202b2aa23d73e4ed poly 176 simplify
 4c9047e03d0089cc poly 176 triangulate
@@ -2140,7 +2140,7 @@ da83a1b9f7ea61e4 poly 176 pip
 44928f85b6b26950 poly 177 paths
 ed52b2d37b1a5975 poly 177 tree
 3a30b46e99015c8a poly 177 reverse+collinear
-c036554401945026 poly 177 clipperD
+0fba219be2477bde poly 177 clipperD
 0220e400ddae681b poly 177 offset Square -7
 4c1ceaec56738c28 poly 177 offset Square 4.5
 330f1696b4383837 poly 177 offset Square 23
@@ -2160,7 +2160,7 @@ eb2201d01c98b444 poly 177 pip
 2f2629d456d74e25 poly 178 paths
 ba6414c5f19aa31f poly 178 tree
 33862d3ffba42d12 poly 178 reverse+collinear
-58e99dc7dba14a96 poly 178 clipperD
+7ba4ba738b9fd4c2 poly 178 clipperD
 a2c06c3699eac247 poly 178 rectclip
 1a0d3153de4f18bd poly 178 simplify
 4365b4cdab49a164 poly 178 triangulate
@@ -2168,7 +2168,7 @@ a5ce130e74aebd06 poly 178 pip
 b81b4f87a69b5807 poly 179 paths
 0d2d1de3e951f76b poly 179 tree
 31881ab948c0a4dc poly 179 reverse+collinear
-280aaf2ec592e9a8 poly 179 clipperD
+d9a63ecc70bd48b4 poly 179 clipperD
 cb208eb091ee59a5 poly 179 rectclip
 4acf6bbf6109811f poly 179 simplify
 d080522a28383ef3 poly 179 triangulate
@@ -2176,7 +2176,7 @@ a2f760f3e69929a6 poly 179 pip
 f76c72c655aed027 poly 180 paths
 4d37fa3cb0c84e86 poly 180 tree
 556217104af5e6b1 poly 180 reverse+collinear
-934dc437f7d65b87 poly 180 clipperD
+1ccc92d97fc923a2 poly 180 clipperD
 594e5f34fcf8fbe2 poly 180 offset Square -7
 73858496fc7959ee poly 180 offset Square 4.5
 cfc5071a2e36f88e poly 180 offset Square 23
@@ -2197,7 +2197,7 @@ b14a72151b050baa poly 180 minkowski
 38b6c98831794ef7 poly 181 paths
 9a83ae2de9b60a2c poly 181 tree
 d177501c21b7cf53 poly 181 reverse+collinear
-c155c99783474c60 poly 181 clipperD
+10cec9963dd6f9dd poly 181 clipperD
 1f9055c0aceae67b poly 181 rectclip
 4981dfc84bf1bd75 poly 181 simplify
 19d4cb59409330e9 poly 181 triangulate
@@ -2205,7 +2205,7 @@ fafdc79f63d99064 poly 181 pip
 deae9fa2c861df80 poly 182 paths
 d85493e8d60ad5c4 poly 182 tree
 e50f6f8cbbcc01f0 poly 182 reverse+collinear
-29bdee163411b991 poly 182 clipperD
+72f11ec2cd7163b0 poly 182 clipperD
 05e9c22256d5f8ed poly 182 rectclip
 ebe85c3e16af6bc3 poly 182 simplify
 668dc2da4bd5c1e6 poly 182 triangulate
@@ -2213,7 +2213,7 @@ c780a44b6df10045 poly 182 pip
 dd2b2ef20fddebc8 poly 183 paths
 c2ad41f508453595 poly 183 tree
 c3b180b4950c9d58 poly 183 reverse+collinear
-6819f7c9e1666951 poly 183 clipperD
+2b8156665e13561d poly 183 clipperD
 c71c2e8eb7584740 poly 183 offset Square -7
 9df5ff7963f2cfbe poly 183 offset Square 4.5
 50063bea1fa19f6c poly 183 offset Square 23
@@ -2233,7 +2233,7 @@ c1aa600e7045b7c6 poly 183 pip
 45e9febb73bf8bde poly 184 paths
 15e43d164afd0523 poly 184 tree
 70617aea24a84966 poly 184 reverse+collinear
-15f90e41f0a43871 poly 184 clipperD
+985914702df92f41 poly 184 clipperD
 c7f384a3e74be5ab poly 184 rectclip
 7a2121866f58fbef poly 184 simplify
 78013c78973aa575 poly 184 triangulate
@@ -2241,7 +2241,7 @@ c7f384a3e74be5ab poly 184 rectclip
 fea927d4a1a912c4 poly 185 paths
 7571c032c5776f84 poly 185 tree
 3d0019d9f51f6519 poly 185 reverse+collinear
-7d2589948c8c6e86 poly 185 clipperD
+e2b62dab8abbb293 poly 185 clipperD
 03066ce7161865e0 poly 185 rectclip
 b318619bbe364ea5 poly 185 simplify
 5ee6b4c06a29977f poly 185 triangulate
@@ -2250,7 +2250,7 @@ b318619bbe364ea5 poly 185 simplify
 71dbb788e30de434 poly 186 paths
 ce6fed7a6a7f956e poly 186 tree
 f7ab7603a1a7d74a poly 186 reverse+collinear
-63587be1efed8859 poly 186 clipperD
+99ceb16c79a6e4dc poly 186 clipperD
 14bc9c55d859796c poly 186 offset Square -7
 262c8edc99ebe385 poly 186 offset Square 4.5
 d88fbacf4aaf2fd8 poly 186 offset Square 23
@@ -2270,7 +2270,7 @@ a8bb921d87e09587 poly 186 pip
 44983d31486bb3ad poly 187 paths
 4c0192ac02f71468 poly 187 tree
 220cbd369ec6a6a8 poly 187 reverse+collinear
-c9c35c9d44c2332c poly 187 clipperD
+1260016e44a369a4 poly 187 clipperD
 a52636e5415cbaa0 poly 187 rectclip
 5927f86fba2a4fd3 poly 187 simplify
 6c4719e0f66a8da5 poly 187 triangulate
@@ -2278,7 +2278,7 @@ ad010fcf3c7bca64 poly 187 pip
 b21d7277f6f41043 poly 188 paths
 ed5186b68dd59e41 poly 188 tree
 f5edd54d381c4860 poly 188 reverse+collinear
-1c7680b5b47ca3b8 poly 188 clipperD
+129d6ed6a1a39fec poly 188 clipperD
 12b9484d12463ae0 poly 188 rectclip
 2764591067f9be80 poly 188 simplify
 38a08ed5a42645e5 poly 188 triangulate
@@ -2286,7 +2286,7 @@ a8e33f261e090fc4 poly 188 pip
 0e432f2a0e6da223 poly 189 paths
 48f56ac13f2b7960 poly 189 tree
 b8c3294cdae564a0 poly 189 reverse+collinear
-fbb5d07eccc57f34 poly 189 clipperD
+8073c565194b5834 poly 189 clipperD
 072eb421c6c7a943 poly 189 offset Square -7
 502b41fd245dc5e5 poly 189 offset Square 4.5
 cda75f32e2610cf8 poly 189 offset Square 23
@@ -2306,7 +2306,7 @@ aa5e8dbe6f32a165 poly 189 triangulate
 70e682eb1cf32123 poly 190 paths
 f7c35606c3207960 poly 190 tree
 dbde2f298cbd9ca0 poly 190 reverse+collinear
-ac70844ea9165bf4 poly 190 clipperD
+8ee6bb1315d903f4 poly 190 clipperD
 ec674cb14823ab60 poly 190 rectclip
 aff9c4b6f86283a5 poly 190 simplify
 aa5e8dbe6f32a165 poly 190 triangulate
@@ -2315,7 +2315,7 @@ b85e3479a683d3c4 poly 190 pip
 fb71c75aa2243204 poly 191 paths
 c9e08bbaa9ccbb14 poly 191 tree
 8cfb160ae6d957f4 poly 191 reverse+collinear
-dec31c0d72d4d2c4 poly 191 clipperD
+8cd7ea0b9886ee9c poly 191 clipperD
 33ddac2d2f60cf0c poly 191 rectclip
 d2303321b1199f63 poly 191 simplify
 e97fef2cfce1d5c1 poly 191 triangulate
@@ -2323,7 +2323,7 @@ e97fef2cfce1d5c1 poly 191 triangulate
 8cdc73088c8e6563 poly 192 paths
 2b212cf88b4d171e poly 192 tree
 2a6ebd9df5bfb51e poly 192 reverse+collinear
-23b9042514abd143 poly 192 clipperD
+0f79250128646014 poly 192 clipperD
 a8c7f832281a39c5 poly 192 offset Square -7
 f3ff8ebe0c16c3dd poly 192 offset Square 4.5
 b1c694e8a2554f43 poly 192 offset Square 23
@@ -2343,7 +2343,7 @@ ce5c567ca7c60165 poly 192 pip
 17a397333bba311a poly 193 paths
 01388942f7776225 poly 193 tree
 caf798a1639ba7c5 poly 193 reverse+collinear
-2e68cbe5044c5404 poly 193 clipperD
+7c2736e9a78ca40c poly 193 clipperD
 e039cacd6a3ee94f poly 193 rectclip
 f0001aa46ab0850d poly 193 simplify
 614e366b70b30f99 poly 193 triangulate
@@ -2351,7 +2351,7 @@ f0001aa46ab0850d poly 193 simplify
 44c8aeb3612c43a4 poly 194 paths
 c40a3db05b58da97 poly 194 tree
 c89768b9f88ae0cf poly 194 reverse+collinear
-6aa3cd0b5cc0a1b9 poly 194 clipperD
+735e860c6215cbed poly 194 clipperD
 0a7d2a260d77f8d8 poly 194 rectclip
 85fe6055567302a5 poly 194 simplify
 3f862ec31a0bad67 poly 194 triangulate
@@ -2359,7 +2359,7 @@ faa6b853197bcb07 poly 194 pip
 67e8290b3c57002d poly 195 paths
 e20baa0c35912024 poly 195 tree
 f813cf1a3fdeab26 poly 195 reverse+collinear
-9b7da18a88241e5c poly 195 clipperD
+462e8f114762c944 poly 195 clipperD
 8fc0e9412a584bcf poly 195 offset Square -7
 6ae04878ec89e4be poly 195 offset Square 4.5
 7680432f1ca01494 poly 195 offset Square 23

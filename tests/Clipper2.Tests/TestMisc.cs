@@ -490,6 +490,32 @@ namespace Clipper2Lib.UnitTests
     }
 
     [TestMethod]
+    public void TestPolyTreeDScale()
+    {
+      // a ClipperD polytree must hold the same coordinates as its PathsD output
+      // (a port defect scaled the tree's polygons by the engine scale squared)
+      PathsD subj = new PathsD { Clipper.MakePath(new double[] { 0, 0, 10.5, 0, 10.5, 7.25, 0, 7.25 }) };
+      PathsD clip = new PathsD { Clipper.MakePath(new double[] { 2, 2, 5, 2, 5, 5, 2, 5 }) };
+      foreach (int precision in new[] { 0, 2, 5 })
+      {
+        ClipperD c = new ClipperD(precision);
+        c.AddSubject(subj);
+        c.AddClip(clip);
+        PathsD paths = new PathsD();
+        c.Execute(ClipType.Difference, FillRule.NonZero, paths);
+        PolyTreeD tree = new PolyTreeD();
+        c.Execute(ClipType.Difference, FillRule.NonZero, tree);
+        Assert.AreEqual(Clipper.Area(paths), tree.Area(), 1e-9, "precision " + precision);
+        // (precision 0 works on a grid of 0.5, which moves 7.25 to 7.5)
+        if (precision > 0) Assert.AreEqual(67.125, tree.Area(), 1e-9);
+        Assert.AreEqual(1, tree.Count);
+        Assert.AreEqual(1, tree[0].Count); // the hole
+        RectD b = Clipper.GetBounds(tree[0].Polygon!);
+        Assert.AreEqual(10.5, b.right, 1e-9);
+      }
+    }
+
+    [TestMethod]
     public void TestIntersectNodeSorter()
     {
       // nb: the engine sorts its intersection list with a hand written introsort

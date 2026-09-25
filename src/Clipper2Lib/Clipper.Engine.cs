@@ -3933,6 +3933,8 @@ namespace Clipper2Lib
 
   public class PolyPathD : PolyPathBase
   {
+    // nb: the factor from engine coordinates to the tree's (the C++ scale_):
+    // ClipperD sets it to its inverse scale, so a Path64 child is multiplied by it
     internal double Scale { get; set; } = 1.0;
     public PathD? Polygon { get; private set; }
 
@@ -3945,7 +3947,7 @@ namespace Clipper2Lib
     {
       PolyPathD newChild = new PolyPathD(this);
       newChild.Scale = Scale;
-      newChild.Polygon = Clipper.ScalePathD(p, 1 / Scale);
+      newChild.Polygon = Clipper.ScalePathD(p, Scale); // C++: ScalePath(path, scale_)
       _childs.Add(newChild);
       return newChild;
     }
