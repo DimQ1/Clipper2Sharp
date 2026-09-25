@@ -72,7 +72,7 @@ below 1.00 are listed with their profile under 'Where the remaining time goes'.
 
 ## Verification status
 
-- tests: 32/32 MSTest
+- tests: 35/35 MSTest
 - golden output hashes: Results/golden-hashes.txt: 6409 hashes of the complete output (every coordinate, path order, polytree nesting) over the test corpus and a 4000 case fuzz corpus, recorded from the round 2 build; the round 3 build reproduces all 6409 (dotnet run -c Release --project benchmark/Clipper2.PortProfile -- golden verify)
 - Z flavour: Clipper2ZLib (USINGZ): 1500 Z-callback cases (booleans, polytrees, offsets, ClipperD) hash identically to the round 2 build
 - vs C++: 197 of 197 cases identical to the C++ -O2 build (path count and area); the -march=native build differs from its own -O2 sibling on 8 of them (FMA contraction), and the port matches the non-contracting builds. Dumps: `Results/fidelity-cpp.txt vs Results/fidelity-port.txt (diff them case by case)`

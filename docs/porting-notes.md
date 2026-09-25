@@ -44,11 +44,20 @@ C++ headers): `Clipper.Length`, `Clipper.NearCollinear`,
 `Clipper.Ellipse(Rect64/RectD, steps)` and the `C++`-style
 `BooleanOp(clipType, fillRule, subject, clip)` overloads.
 
-Round 3 (§4.6) adds three entry points that neither the C++ nor the upstream C#
-has: `PointInPolygonLocator` and `Clipper.PointInPolygon(polygon, points, results)`
-(many queries against one polygon, answers identical to the single call), and
-`Clipper.BooleanOpParallel` (independent clusters clipped in parallel; the same
-regions up to integer rounding, so it is a separate, opt-in call).
+Round 3 (§4.6) adds entry points that neither the C++ nor the upstream C# has:
+`PointInPolygonLocator` / `PointInPolygonLocatorD` and the batch
+`Clipper.PointInPolygon(polygon, points, results)` for `Path64` and `PathD` (many
+queries against one polygon, answers identical to the single calls), and
+`Clipper.BooleanOpParallel` / `Clipper.UnionParallel` for `Paths64`, `PathsD`,
+`PolyTree64` and `PolyTreeD` (independent clusters clipped in parallel; the same
+regions up to integer rounding, so they are separate, opt-in calls; the `PathsD`
+forms scale exactly like `ClipperD`).
+
+Round 3 also fixed a porting defect in `PolyPathD.AddChild`: `ClipperD` hands
+the tree its inverse scale (the C++ `SetScale(invScale_)`), but `AddChild`
+divided by it, so every polygon of a `ClipperD` polytree came out multiplied by
+the engine scale squared. It now multiplies, as the C++ does
+(`TestPolyTreeDScale`).
 
 ### 2.1 Enum member order (`JoinType`)
 

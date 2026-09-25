@@ -1047,6 +1047,24 @@ namespace Clipper2Lib
       new PointInPolygonLocator(polygon).Locate(points, results);
     }
 
+    /// <summary>
+    /// The PathD form of the batch query: results[i] is exactly what
+    /// PointInPolygon(points[i], polygon, precision) returns.
+    /// </summary>
+    public static void PointInPolygon(PathD polygon, ReadOnlySpan<PointD> points,
+      Span<PointInPolygonResult> results, int precision = 2)
+    {
+      if (results.Length < points.Length)
+        throw new ArgumentException("results is shorter than points", nameof(results));
+      if (points.Length < 16)
+      {
+        for (int i = 0; i < points.Length; i++)
+          results[i] = PointInPolygon(points[i], polygon, precision);
+        return;
+      }
+      new PointInPolygonLocatorD(polygon, precision).Locate(points, results);
+    }
+
     public static PointInPolygonResult PointInPolygon(PointD pt,
       PathD polygon, int precision = 2)
     {

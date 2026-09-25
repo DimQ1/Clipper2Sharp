@@ -516,6 +516,134 @@ namespace Clipper2Lib.UnitTests
     }
 
     [TestMethod]
+    public void TestPointInPolygonLocatorD()
+    {
+      // the PathD locator and batch query answer exactly like the single call
+      Random rnd = new Random(99);
+      for (int round = 0; round < 100; round++)
+      {
+        int n = rnd.Next(3, 40);
+        PathD poly = new PathD(n);
+        for (int i = 0; i < n; i++)
+        {
+          double x = Math.Round(rnd.NextDouble() * 20 - 10, 3), y = Math.Round(rnd.NextDouble() * 20 - 10, 3);
+          if (i > 0 && rnd.Next(4) == 0) y = poly[i - 1].y;
+          poly.Add(new PointD(x, y));
+        }
+        int precision = round % 4;
+        PointInPolygonLocatorD locator = new PointInPolygonLocatorD(poly, precision);
+        List<PointD> probes = new List<PointD>(poly);
+        for (int i = 0; i < 2000; i++)
+          probes.Add(new PointD(Math.Round(rnd.NextDouble() * 24 - 12, 4), Math.Round(rnd.NextDouble() * 24 - 12, 4)));
+        PointD[] pts = probes.ToArray();
+        PointInPolygonResult[] batch = new PointInPolygonResult[pts.Length];
+        Clipper.PointInPolygon(poly, pts, batch, precision);
+        PointInPolygonResult[] batch2 = new PointInPolygonResult[pts.Length];
+        locator.Locate(pts, batch2);
+        for (int i = 0; i < pts.Length; i++)
+        {
+          PointInPolygonResult expected = Clipper.PointInPolygon(pts[i], poly, precision);
+          Assert.AreEqual(expected, locator.Locate(pts[i]), $"round {round} probe {pts[i]}");
+          Assert.AreEqual(expected, batch[i], $"round {round} batch probe {pts[i]}");
+          Assert.AreEqual(expected, batch2[i], $"round {round} locator batch probe {pts[i]}");
+          Assert.AreEqual(expected != PointInPolygonResult.IsOutside, locator.Contains(pts[i]));
+        }
+      }
+      PointInPolygonLocator square = new PointInPolygonLocator(
+        Clipper.MakePath(new long[] { 0, 0, 10, 0, 10, 10, 0, 10 }));
+      Assert.AreEqual(new Rect64(0, 0, 10, 10), square.Bounds);
+      Assert.AreEqual(4, square.Count);
+      Assert.IsTrue(square.Contains(new Point64(5, 5)));
+      Assert.IsTrue(square.Contains(new Point64(10, 5)));   // on the boundary
+      Assert.IsFalse(square.Contains(new Point64(11, 5)));
+      Assert.IsFalse(new PointInPolygonLocator(new Path64()).Bounds.IsValid());
+      RectD bd = new PointInPolygonLocatorD(Clipper.MakePath(new double[] { 0, 0, 1.5, 0, 1.5, 2.25 }), 2).Bounds;
+      Assert.AreEqual(1.5, bd.right, 1e-12);
+      Assert.AreEqual(2.25, bd.bottom, 1e-12);
+    }
+
+    private static (Paths64 subj, Paths64 clip) ClusteredInput(int seed, int clusters)
+    {
+      Random rnd = new Random(seed);
+      Paths64 subj = new Paths64(), clip = new Paths64();
+      for (int k = 0; k < clusters; k++)
+      {
+        long ox = (k % 8) * 100_000, oy = (k / 8) * 100_000;
+        // a ring (outer + hole) per cluster, plus overlapping ellipses
+        subj.Add(Clipper.Ellipse(new Point64(ox, oy), 9000, 9000, 120));
+        Path64 hole = Clipper.Ellipse(new Point64(ox, oy), 4000, 4000, 80);
+        hole.Reverse();
+        subj.Add(hole);
+        subj.Add(Clipper.Ellipse(new Point64(ox + rnd.Next(-5000, 5000), oy + rnd.Next(-5000, 5000)),
+          rnd.Next(2000, 6000), rnd.Next(2000, 6000), 90));
+        clip.Add(Clipper.Ellipse(new Point64(ox + rnd.Next(-3000, 3000), oy + rnd.Next(-3000, 3000)),
+          rnd.Next(2000, 7000), rnd.Next(2000, 7000), 90));
+      }
+      return (subj, clip);
+    }
+
+    private static int CountNodes(PolyPathBase pp, int level, int[] perLevel)
+    {
+      int n = 0;
+      foreach (PolyPathBase child in pp)
+      {
+        if (level < perLevel.Length) perLevel[level]++;
+        n += 1 + CountNodes(child, level + 1, perLevel);
+      }
+      return n;
+    }
+
+    [TestMethod]
+    public void TestBooleanOpParallelVariants()
+    {
+      (Paths64 subj, Paths64 clip) = ClusteredInput(5, 40);
+      foreach (ClipType ct in new[] { ClipType.Union, ClipType.Difference })
+      {
+        // polytree: same nesting (nodes per level) and the same area
+        PolyTree64 seqTree = new PolyTree64(), parTree = new PolyTree64();
+        Clipper.BooleanOp(ct, FillRule.NonZero, subj, clip, seqTree);
+        Clipper.BooleanOpParallel(ct, FillRule.NonZero, subj, clip, parTree);
+        int[] l1 = new int[4], l2 = new int[4];
+        Assert.AreEqual(CountNodes(seqTree, 0, l1), CountNodes(parTree, 0, l2), $"{ct}: node count");
+        CollectionAssert.AreEqual(l1, l2, $"{ct}: nodes per level");
+        Assert.AreEqual(seqTree.Area(), parTree.Area(), 1e-5 * Math.Abs(seqTree.Area()) + 1, $"{ct}: tree area");
+        foreach (PolyPath64 top in parTree)
+        {
+          Assert.IsFalse(top.IsHole);
+          foreach (PolyPath64 child in top) Assert.IsTrue(child.IsHole);
+        }
+
+        // PathsD and PolyTreeD, against ClipperD with the same precision
+        PathsD subjD = Clipper.ScalePathsD(subj, 0.001), clipD = Clipper.ScalePathsD(clip, 0.001);
+        ClipperD cd = new ClipperD(3);
+        cd.AddSubject(subjD);
+        cd.AddClip(clipD);
+        PathsD seqD = new PathsD();
+        cd.Execute(ct, FillRule.NonZero, seqD);
+        PathsD parD = Clipper.BooleanOpParallel(ct, FillRule.NonZero, subjD, clipD, 3);
+        Assert.AreEqual(seqD.Count, parD.Count, $"{ct}: PathsD count");
+        Assert.AreEqual(Clipper.Area(seqD), Clipper.Area(parD), 1e-5 * Math.Abs(Clipper.Area(seqD)), $"{ct}: PathsD area");
+        PolyTreeD seqTreeD = new PolyTreeD(), parTreeD = new PolyTreeD();
+        cd.Execute(ct, FillRule.NonZero, seqTreeD);
+        Clipper.BooleanOpParallel(ct, FillRule.NonZero, subjD, clipD, parTreeD, 3);
+        Assert.AreEqual(seqTreeD.Area(), parTreeD.Area(), 1e-5 * Math.Abs(seqTreeD.Area()), $"{ct}: PolyTreeD area");
+        Assert.AreEqual(Clipper.Area(parD), parTreeD.Area(), 1e-9 * Math.Abs(Clipper.Area(parD)), $"{ct}: PolyTreeD vs PathsD");
+      }
+
+      // the union shorthands
+      Paths64 u = Clipper.UnionParallel(subj, FillRule.NonZero);
+      Assert.AreEqual(Clipper.Area(Clipper.Union(subj, FillRule.NonZero)), Clipper.Area(u),
+        1e-5 * Math.Abs(Clipper.Area(u)));
+      PathsD uD = Clipper.UnionParallel(Clipper.ScalePathsD(subj, 0.01), FillRule.NonZero, 2);
+      Assert.AreEqual(Clipper.Area(u) * 1e-4, Clipper.Area(uD), 1e-4 * Math.Abs(Clipper.Area(uD)));
+
+      // small inputs take the plain (bit-identical) route
+      Paths64 small = new Paths64 { Clipper.MakePath(new long[] { 0, 0, 10, 0, 10, 10 }) };
+      CollectionAssert.AreEqual(Clipper.Union(small, FillRule.NonZero)[0],
+        Clipper.UnionParallel(small, FillRule.NonZero)[0]);
+    }
+
+    [TestMethod]
     public void TestIntersectNodeSorter()
     {
       // nb: the engine sorts its intersection list with a hand written introsort

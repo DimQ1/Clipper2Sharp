@@ -126,6 +126,19 @@ namespace Clipper2Lib
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int Bucket(long y) => (int) ((y - _minY) / _bucketHeight);
 
+    /// <summary>The number of polygon vertices the locator was built from.</summary>
+    public int Count => _count;
+
+    /// <summary>
+    /// The polygon's bounding box (an invalid rectangle for fewer than 3
+    /// vertices). Every point outside it is 'outside'.
+    /// </summary>
+    public Rect64 Bounds => _count < 3 ? Rect64.InvalidRect() : new Rect64(_minX, _minY, _maxX, _maxY);
+
+    /// <summary>True when the point is inside the polygon or on its boundary.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Contains(Point64 pt) => Locate(pt) != PointInPolygonResult.IsOutside;
+
     public PointInPolygonResult Locate(Point64 pt)
     {
       if (_count < 3 || _minY == _maxY ||
@@ -199,6 +212,65 @@ namespace Clipper2Lib
       }
 #endif
       for (; i < n; i++) results[i] = Locate(points[i]);
+    }
+  }
+
+  /// <summary>
+  /// The PathD form of <see cref="PointInPolygonLocator"/>: every query returns
+  /// exactly what <see cref="Clipper.PointInPolygon(PointD, PathD, int)"/> returns
+  /// for the same precision (the polygon and the points are scaled by
+  /// 10^precision and rounded the same way).
+  /// </summary>
+  public sealed class PointInPolygonLocatorD
+  {
+    private readonly PointInPolygonLocator _locator;
+    private readonly double _scale;
+
+    public PointInPolygonLocatorD(PathD polygon, int precision = 2)
+    {
+      InternalClipper.CheckPrecision(precision);
+      _scale = Math.Pow(10, precision);
+      _locator = new PointInPolygonLocator(Clipper.ScalePath64(polygon, _scale));
+    }
+
+    public PointInPolygonResult Locate(PointD pt) => _locator.Locate(new Point64(pt, _scale));
+
+    /// <summary>True when the point is inside the polygon or on its boundary.</summary>
+    public bool Contains(PointD pt) => Locate(pt) != PointInPolygonResult.IsOutside;
+
+    /// <summary>The polygon's bounding box in the polygon's own units.</summary>
+    public RectD Bounds
+    {
+      get
+      {
+        Rect64 b = _locator.Bounds;
+        if (!b.IsValid()) return RectD.InvalidRect();
+        return new RectD(b.left / _scale, b.top / _scale, b.right / _scale, b.bottom / _scale);
+      }
+    }
+
+    /// <summary>Locates every point (results[i] belongs to points[i]).</summary>
+    public void Locate(ReadOnlySpan<PointD> points, Span<PointInPolygonResult> results)
+    {
+      if (results.Length < points.Length)
+        throw new ArgumentException("results is shorter than points", nameof(results));
+      // the points are scaled in chunks, so the batch keeps the vectorised
+      // bounding box test of the integer locator
+      const int chunk = 1024;
+      Point64[] buffer = System.Buffers.ArrayPool<Point64>.Shared.Rent(Math.Min(chunk, Math.Max(points.Length, 1)));
+      try
+      {
+        for (int start = 0; start < points.Length; start += chunk)
+        {
+          int len = Math.Min(chunk, points.Length - start);
+          for (int k = 0; k < len; k++) buffer[k] = new Point64(points[start + k], _scale);
+          _locator.Locate(new ReadOnlySpan<Point64>(buffer, 0, len), results.Slice(start, len));
+        }
+      }
+      finally
+      {
+        System.Buffers.ArrayPool<Point64>.Shared.Return(buffer);
+      }
     }
   }
 }

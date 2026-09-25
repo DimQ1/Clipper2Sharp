@@ -69,7 +69,7 @@ use (`Tests/Polygons.txt` with 195 boolean cases, `Lines.txt`, `Offsets.txt`,
 `PolytreeHoleOwner*.txt`), plus ports of `TestRect`, `TestRectClip`,
 `TestSimplifyPath`, `TestTrimCollinear` and additional rect-clip, triangulation,
 Minkowski, sorter, multi-threaded-path, point locator, parallel boolean and
-reusable-data tests: **32 tests, all green**.
+reusable-data tests: **35 tests, all green**.
 
 ## Fidelity
 
@@ -168,6 +168,17 @@ single call after a SIMD bounding box test and a Y-bucketed edge table: the
 benchmark's 200k x 249 probes take **82 ms instead of 711 ms**. For inputs made of
 independent clusters, `Clipper.BooleanOpParallel` clips the clusters separately
 (400 clusters of 8 ellipses: **33 ms instead of 1775 ms**).
+
+The additional entry points:
+
+| API | result |
+|---|---|
+| `PointInPolygonLocator(Path64)`: `Locate`, `Locate(span, span)`, `Contains`, `Bounds`, `Count` | identical to `Clipper.PointInPolygon(Point64, Path64)` |
+| `PointInPolygonLocatorD(PathD, precision)`: `Locate`, `Locate(span, span)`, `Contains`, `Bounds` | identical to `Clipper.PointInPolygon(PointD, PathD, precision)` |
+| `Clipper.PointInPolygon(Path64 / PathD polygon, points, results[, precision])` | identical to the single calls |
+| `Clipper.BooleanOpParallel(ct, fr, Paths64 subject, clip)` / `UnionParallel(Paths64, fr)` | same regions up to integer rounding |
+| `Clipper.BooleanOpParallel(ct, fr, subject, clip, PolyTree64)` | clusters' trees merged under one root |
+| `Clipper.BooleanOpParallel(ct, fr, PathsD subject, clip[, PolyTreeD], precision)` / `UnionParallel(PathsD, fr, precision)` | scaled exactly like `ClipperD` |
 
 ### How these numbers were taken (and how they can mislead)
 

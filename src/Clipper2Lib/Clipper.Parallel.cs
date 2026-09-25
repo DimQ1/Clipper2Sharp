@@ -49,17 +49,105 @@ namespace Clipper2Lib
     public static Paths64 BooleanOpParallel(ClipType clipType, FillRule fillRule,
       Paths64 subject, Paths64? clip = null)
     {
+      List<(Paths64 subject, Paths64 clip)>? clusters = FindClusters(subject, clip);
+      if (clusters == null)
+        return BooleanOp(clipType, fillRule, subject, clip);
+
+      Paths64[] parts = new Paths64[clusters.Count];
+      Parallel.For(0, clusters.Count, c =>
+        parts[c] = BooleanOp(clipType, fillRule, clusters[c].subject, clusters[c].clip));
+
+      int total = 0;
+      foreach (Paths64 part in parts) total += part.Count;
+      Paths64 result = new Paths64(total);
+      foreach (Paths64 part in parts) result.AddRange(part);
+      return result;
+    }
+
+    /// <summary>
+    /// <see cref="BooleanOpParallel(ClipType, FillRule, Paths64, Paths64?)"/> with a
+    /// polytree result: every cluster's outer polygons become children of the
+    /// root in cluster order (a cluster's holes and islands stay nested under
+    /// its own polygons, because clusters cannot contain one another).
+    /// </summary>
+    public static void BooleanOpParallel(ClipType clipType, FillRule fillRule,
+      Paths64 subject, Paths64? clip, PolyTree64 polytree)
+    {
+      List<(Paths64 subject, Paths64 clip)>? clusters = FindClusters(subject, clip);
+      if (clusters == null)
+      {
+        BooleanOp(clipType, fillRule, subject, clip, polytree);
+        return;
+      }
+      PolyTree64[] parts = new PolyTree64[clusters.Count];
+      Parallel.For(0, clusters.Count, c =>
+      {
+        PolyTree64 t = new PolyTree64();
+        BooleanOp(clipType, fillRule, clusters[c].subject, clusters[c].clip, t);
+        parts[c] = t;
+      });
+      polytree.Clear();
+      foreach (PolyTree64 part in parts) AdoptChildren(polytree, part);
+    }
+
+    /// <summary>
+    /// The PathsD form: the paths are scaled exactly as <see cref="ClipperD"/>
+    /// scales them (a power of two at or above 10^precision), so each cluster is
+    /// clipped as a ClipperD with that precision would clip it.
+    /// </summary>
+    public static PathsD BooleanOpParallel(ClipType clipType, FillRule fillRule,
+      PathsD subject, PathsD? clip = null, int precision = 2)
+    {
+      double scale = ClipperDScale(ref precision);
+      Paths64 result = BooleanOpParallel(clipType, fillRule,
+        ScaleIn(subject, scale), clip == null ? null : ScaleIn(clip, scale));
+      return ScalePathsD(result, 1 / scale);
+    }
+
+    /// <summary>The PathsD form with a polytree result.</summary>
+    public static void BooleanOpParallel(ClipType clipType, FillRule fillRule,
+      PathsD subject, PathsD? clip, PolyTreeD polytree, int precision = 2)
+    {
+      double scale = ClipperDScale(ref precision);
+      PolyTree64 tree = new PolyTree64();
+      BooleanOpParallel(clipType, fillRule,
+        ScaleIn(subject, scale), clip == null ? null : ScaleIn(clip, scale), tree);
+      polytree.Clear();
+      polytree.Scale = 1 / scale;
+      CopyTree(tree, polytree);
+    }
+
+    /// <summary>Union of independent clusters in parallel (see BooleanOpParallel).</summary>
+    public static Paths64 UnionParallel(Paths64 subject, FillRule fillRule)
+    {
+      return BooleanOpParallel(ClipType.Union, fillRule, subject, null);
+    }
+
+    /// <summary>Union of independent clusters in parallel (see BooleanOpParallel).</summary>
+    public static PathsD UnionParallel(PathsD subject, FillRule fillRule, int precision = 2)
+    {
+      return BooleanOpParallel(ClipType.Union, fillRule, subject, null, precision);
+    }
+
+    // helpers ---------------------------------------------------------------
+
+    /// <summary>
+    /// Splits subject and clip paths into clusters (union-find over bounding
+    /// box overlap, found with a sweep over the boxes sorted by their left
+    /// edge), each listed in input order and numbered by its first path.
+    /// Returns null when splitting cannot pay off (a small input, or a single
+    /// cluster), in which case the caller runs the plain operation.
+    /// </summary>
+    private static List<(Paths64 subject, Paths64 clip)>? FindClusters(Paths64 subject, Paths64? clip)
+    {
       int ns = subject.Count, nc = clip?.Count ?? 0, n = ns + nc;
       long totalPoints = 0;
       for (int i = 0; i < ns; i++) totalPoints += subject[i].Count;
       for (int i = 0; i < nc; i++) totalPoints += clip![i].Count;
-      if (n < 2 || !BulkOps.ShouldParallelize(totalPoints))
-        return BooleanOp(clipType, fillRule, subject, clip);
+      if (n < 2 || !BulkOps.ShouldParallelize(totalPoints)) return null;
 
       Path64 PathAt(int i) => i < ns ? subject[i] : clip![i - ns];
 
-      // clusters: union-find over bounding box overlap, found with a sweep over
-      // the boxes sorted by their left edge
       Rect64[] box = new Rect64[n];
       int[] order = new int[n];
       int valid = 0;
@@ -97,9 +185,8 @@ namespace Clipper2Lib
         active.Add(i);
       }
 
-      // the clusters, each listed in input order, numbered by their first path
       Dictionary<int, int> clusterOf = new Dictionary<int, int>();
-      List<Paths64> subjects = new List<Paths64>(), clips = new List<Paths64>();
+      List<(Paths64 subject, Paths64 clip)> clusters = new List<(Paths64, Paths64)>();
       for (int i = 0; i < n; i++)
       {
         Path64 p = PathAt(i);
@@ -107,26 +194,46 @@ namespace Clipper2Lib
         int root = Find(i);
         if (!clusterOf.TryGetValue(root, out int c))
         {
-          c = subjects.Count;
+          c = clusters.Count;
           clusterOf[root] = c;
-          subjects.Add(new Paths64());
-          clips.Add(new Paths64());
+          clusters.Add((new Paths64(), new Paths64()));
         }
-        if (i < ns) subjects[c].Add(p); else clips[c].Add(p);
+        if (i < ns) clusters[c].subject.Add(p); else clusters[c].clip.Add(p);
       }
-      int count = subjects.Count;
-      if (count == 1)
-        return BooleanOp(clipType, fillRule, subject, clip);
+      return clusters.Count > 1 ? clusters : null;
+    }
 
-      Paths64[] parts = new Paths64[count];
-      Parallel.For(0, count, c =>
-        parts[c] = BooleanOp(clipType, fillRule, subjects[c], clips[c]));
+    private static void AdoptChildren(PolyPathBase target, PolyPathBase source)
+    {
+      foreach (PolyPathBase child in source._childs)
+      {
+        child._parent = target;
+        target._childs.Add(child);
+      }
+      source._childs.Clear();
+    }
 
-      int total = 0;
-      foreach (Paths64 part in parts) total += part.Count;
-      Paths64 result = new Paths64(total);
-      foreach (Paths64 part in parts) result.AddRange(part);
-      return result;
+    private static void CopyTree(PolyPath64 source, PolyPathD target)
+    {
+      for (int i = 0; i < source.Count; i++)
+      {
+        PolyPath64 child = source[i];
+        PolyPathD copy = (PolyPathD) target.AddChild(child.Polygon!);
+        CopyTree(child, copy);
+      }
+    }
+
+    /// <summary>The scale ClipperD(precision) works with (a power of two, #25).</summary>
+    private static double ClipperDScale(ref int precision)
+    {
+      InternalClipper.CheckPrecisionRange(ref precision);
+      return Math.Pow(2.0, Math.ILogB(Math.Pow(10, precision)) + 1);
+    }
+
+    private static Paths64 ScaleIn(PathsD paths, double scale)
+    {
+      int errorCode = 0;
+      return InternalClipper.ScalePaths(paths, scale, ref errorCode);
     }
   }
 }
