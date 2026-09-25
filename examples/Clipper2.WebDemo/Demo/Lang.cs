@@ -127,8 +127,8 @@ public static class Lang
       "This runtime did not report an allocation count, so the cell reads n/a instead of a zero that would not be true.",
       "Этот рантайм не отдал счётчик аллокаций, поэтому в ячейке стоит н/д, а не ноль, который был бы неправдой."),
     ["allocationNote"] = (
-      "Allocation is reported per run over the selected number of runs, and only when the runtime gave a real counter: a single operation is shorter than the counter's update granularity, and the animation runs each frame once, so it shows n/a there. The engine allocates from its pools, so one intersection of these two shapes costs about 0.6 KB on a desktop .NET run.",
-      "Аллокация показывается на один запуск и только тогда, когда рантайм отдал настоящий счётчик: одна операция короче шага обновления счётчика, а в анимации кадр делает один запуск — там стоит н/д. Движок берёт память из пулов, поэтому одно пересечение этих двух фигур на десктопном .NET стоит около 0.6 КБ.")
+      "A single operation allocates less than the runtime updates its counter, which is why the per-run figure shown during an animation is the average of the last eight operations (they are read around the library calls, so rendering is not counted). A manual run with several repetitions reports its own measurement.",
+      "Одна операция аллоцирует меньше шага обновления счётчика рантайма, поэтому во время анимации показывается среднее по последним восьми операциям (замер идёт вокруг вызовов библиотеки, рендеринг не учитывается). Ручной запуск с несколькими повторами показывает собственный замер.")
   };
 
   public static string Get(string lang, string key)

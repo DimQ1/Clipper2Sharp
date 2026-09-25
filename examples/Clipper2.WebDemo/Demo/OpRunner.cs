@@ -75,12 +75,25 @@ public static class OpRunner
     outcome.Result = result;
     outcome.Milliseconds = best;
     outcome.Repetitions = reps;
-    // a single operation is shorter than the runtime updates its counter, so the
-    // per run figure is only reported when there was more than one run to average
-    outcome.AllocationMeasured = reps >= 2 && AllocationMeter.Measured(allocatedBefore, allocatedAfter);
-    outcome.AllocatedBytesPerRun = outcome.AllocationMeasured
-      ? (allocatedAfter - allocatedBefore) / (double) reps
-      : 0;
+
+    // a single operation allocates less than the runtime's counter granularity,
+    // which is the case for every animation frame: those deltas go into a small
+    // window whose average is reported. A measurement with several runs is already
+    // precise, so it reports its own number and does not disturb the window.
+    bool counted = AllocationMeter.Measured(allocatedBefore, allocatedAfter);
+    if (counted && reps == 1)
+    {
+      AllocationMeter.Add(allocatedAfter - allocatedBefore, 1);
+      outcome.AllocationMeasured = AllocationMeter.TryAveragePerOp(out double perOp);
+      outcome.AllocatedBytesPerRun = perOp;
+    }
+    else
+    {
+      outcome.AllocationMeasured = counted && reps >= 2;
+      outcome.AllocatedBytesPerRun = outcome.AllocationMeasured
+        ? (allocatedAfter - allocatedBefore) / (double) reps
+        : 0;
+    }
     outcome.ResultVertices = CountVertices(result);
     // area of the result is the honest headline number for the boolean operations;
     // for triangulation it is the same area, split into triangles
