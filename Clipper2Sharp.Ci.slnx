@@ -1,0 +1,41 @@
+<Solution>
+
+  <!-- The subset of the repository that builds anywhere: src, utils, examples,
+       tests and the port-only drivers (which double as the bit-exactness gates).
+       CI builds, tests and packs this file; Clipper2Sharp.slnx is the full
+       solution for a development machine.
+
+       Deliberately absent:
+         benchmark/Clipper2.Benchmark + benchmark/ReferenceClipper2Lib
+           they compile the upstream C# port from a local Clipper2 checkout
+           (Clipper2ReferenceRoot) and read the test corpus from the same place -->
+
+  <Folder Name="/src/">
+    <Project Path="src/Clipper2Lib/Clipper2Lib.csproj" />
+    <Project Path="src/Clipper2ZLib/Clipper2ZLib.csproj" />
+  </Folder>
+
+  <Folder Name="/utils/">
+    <Project Path="utils/Clipper2.SVG/Clipper2.SVG.csproj" />
+    <Project Path="utils/Clipper.FileIO/Clipper.FileIO.csproj" />
+  </Folder>
+
+  <Folder Name="/examples/">
+    <Project Path="examples/ConsoleDemo/ConsoleDemo.csproj" />
+    <Project Path="examples/InflateDemo/InflateDemo.csproj" />
+    <Project Path="examples/RectClipDemo/RectClipDemo.csproj" />
+    <Project Path="examples/TriangulationDemo/TriangulationDemo.csproj" />
+    <Project Path="examples/UsingZDemo/UsingZDemo.csproj" />
+  </Folder>
+
+  <Folder Name="/tests/">
+    <Project Path="tests/Clipper2.Tests/Clipper2.Tests.csproj" />
+  </Folder>
+
+  <Folder Name="/benchmark/">
+    <Project Path="benchmark/Clipper2.PortProfile/Clipper2.PortProfile.csproj" />
+    <Project Path="benchmark/Clipper2.PortProfileZ/Clipper2.PortProfileZ.csproj" />
+    <Project Path="benchmark/Clipper2.MicroBench/Clipper2.MicroBench.csproj" />
+  </Folder>
+
+</Solution>

@@ -1,0 +1,178 @@
+name: Publish to NuGet
+
+# Publishes Clipper2Sharp to nuget.org when a version tag is pushed:
+#
+#   git tag v2.0.1 && git push origin v2.0.1
+#
+# Authentication (the workflow picks whichever is configured):
+#
+#   1. Trusted publishing (preferred, no secret to rotate): a nuget.org trusted
+#      publishing policy for this repository + the "release" environment, and a
+#      NUGET_USER secret holding the nuget.org profile name (not the e-mail).
+#      The OIDC token is exchanged for a short lived API key by NuGet/login.
+#   2. A NUGET_API_KEY secret with push scope, used as-is.
+#
+# See docs/nuget-release.md for the one time setup. Run this workflow manually to
+# do everything except the upload (dry_run defaults to true).
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build, test and pack only - do not upload to nuget.org'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  CONFIGURATION: Release
+  PACKAGE_PROJECT: src/Clipper2Lib/Clipper2Lib.csproj
+
+jobs:
+  publish:
+    name: pack and publish
+    runs-on: ubuntu-latest
+    # the environment scopes the NUGET_USER secret and can gate the publish
+    # behind required reviewers
+    environment: release
+    permissions:
+      id-token: write   # required: without it NuGet/login fails with 403
+      contents: read
+    env:
+      NUGET_USER: ${{ secrets.NUGET_USER }}
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            Directory.Build.props
+
+      # the tag says what is being published; Directory.Build.props holds the
+      # version the assemblies are stamped with
+      - name: Read the version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          project_version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props | head -1 | tr -d '[:space:]')
+          if [ -z "$project_version" ]; then
+            echo "::error::no <Version> in Directory.Build.props"
+            exit 1
+          fi
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            tag_version="${GITHUB_REF_NAME#v}"
+            if [ "$project_version" != "$tag_version" ]; then
+              echo "::error::tag $GITHUB_REF_NAME does not match <Version>$project_version</Version> in Directory.Build.props - bump the version, commit, and tag that commit"
+              exit 1
+            fi
+          else
+            echo "manual run: tagging would be v$project_version"
+          fi
+          echo "version=$project_version" >> "$GITHUB_OUTPUT"
+          echo "publishing Clipper2Sharp $project_version"
+
+      - name: Restore
+        run: dotnet restore Clipper2Sharp.Ci.slnx
+
+      - name: Build
+        run: dotnet build Clipper2Sharp.Ci.slnx -c "$CONFIGURATION" --no-restore
+
+      - name: Test
+        run: dotnet test tests/Clipper2.Tests/Clipper2.Tests.csproj -c "$CONFIGURATION" --no-build
+
+      # a package is only published when the port is still bit-exact
+      - name: Golden output check
+        run: |
+          dotnet run -c "$CONFIGURATION" --no-build \
+            --project benchmark/Clipper2.PortProfile -- golden verify Results/golden-hashes.txt
+
+      - name: C++ fidelity check
+        run: |
+          dotnet run -c "$CONFIGURATION" --no-build \
+            --project benchmark/Clipper2.PortProfile -- fidelity Results/fidelity-cpp.txt
+
+      - name: Golden output check (Z flavour)
+        run: dotnet run -c "$CONFIGURATION" --no-build --project benchmark/Clipper2.PortProfileZ
+
+      - name: Pack
+        run: dotnet pack "$PACKAGE_PROJECT" -c "$CONFIGURATION" --no-build -o artifacts/packages
+
+      - name: Inspect the package
+        run: |
+          set -euo pipefail
+          ls -l artifacts/packages
+          nupkg=$(ls artifacts/packages/*.nupkg)
+          unzip -l "$nupkg" | grep -q "lib/net10.0/Clipper2Lib.dll" || { echo "::error::the package has no net10.0 assembly"; exit 1; }
+          unzip -l "$nupkg" | grep -q 'README.md' || { echo "::error::the package has no README"; exit 1; }
+
+      - name: NuGet login (OIDC trusted publishing)
+        id: login
+        if: ${{ (github.ref_type == 'tag' || inputs.dry_run == false) && env.NUGET_API_KEY == '' }}
+        uses: NuGet/login@v1
+        with:
+          user: ${{ env.NUGET_USER }}
+
+      # skip the upload on a manual run unless dry_run was switched off
+      - name: Push to nuget.org
+        id: push
+        if: ${{ github.ref_type == 'tag' || inputs.dry_run == false }}
+        shell: bash
+        env:
+          OIDC_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          set -euo pipefail
+          api_key="${NUGET_API_KEY:-$OIDC_API_KEY}"
+          if [ -z "$api_key" ]; then
+            echo "::error::no credentials: set a NUGET_API_KEY secret, or configure trusted publishing (NUGET_USER secret + a nuget.org policy for this repository, workflow file publish.yml, environment release)"
+            exit 1
+          fi
+          if [ -n "$NUGET_API_KEY" ]; then
+            echo "authenticating with the NUGET_API_KEY secret"
+          else
+            echo "authenticating with a trusted publishing token for $NUGET_USER"
+          fi
+          # the nupkg first, then its symbols
+          for file in artifacts/packages/*.nupkg artifacts/packages/*.snupkg; do
+            echo "pushing $file"
+            dotnet nuget push "$file" \
+              --source https://api.nuget.org/v3/index.json \
+              --api-key "$api_key" \
+              --skip-duplicate
+          done
+
+      - name: Upload the package
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg-${{ steps.version.outputs.version }}
+          path: artifacts/packages/*
+          if-no-files-found: error
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Clipper2Sharp ${{ steps.version.outputs.version }}"
+            echo
+            echo "* ref: `$GITHUB_REF_NAME` (`$GITHUB_REF_TYPE`)"
+            echo "* upload: ${{ steps.push.outcome || 'skipped' }}"
+            echo "* artifact: `nupkg-${{ steps.version.outputs.version }}`"
+          } >> "$GITHUB_STEP_SUMMARY"

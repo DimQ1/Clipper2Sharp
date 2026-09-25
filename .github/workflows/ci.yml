@@ -1,0 +1,138 @@
+name: CI
+
+# Build, test and pack on every push / pull request. The benchmark projects are
+# not part of Clipper2Sharp.Ci.slnx - they compile the upstream C# port from a
+# local Clipper2 checkout, so they only build on a development machine.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  CONFIGURATION: Release
+  SOLUTION: Clipper2Sharp.Ci.slnx
+  TEST_PROJECT: tests/Clipper2.Tests/Clipper2.Tests.csproj
+  PACKAGE_PROJECT: src/Clipper2Lib/Clipper2Lib.csproj
+
+jobs:
+  build-test:
+    name: build, test, pack
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            Directory.Build.props
+
+      - name: Restore
+        run: dotnet restore "$SOLUTION"
+
+      - name: Build
+        run: dotnet build "$SOLUTION" -c "$CONFIGURATION" --no-restore
+
+      - name: Test
+        run: |
+          dotnet test "$TEST_PROJECT" \
+            -c "$CONFIGURATION" \
+            --no-build \
+            --logger "trx;LogFileName=clipper2-tests.trx" \
+            --results-directory "$GITHUB_WORKSPACE/artifacts/test-results"
+
+      # The bit-exactness gates. Both read files in Results/, so they need no C++
+      # toolchain: an optimisation that is meant to be bit-exact has to keep these
+      # at 0 differences.
+      - name: Golden output check (every coordinate, path order, tree nesting)
+        run: |
+          dotnet run -c "$CONFIGURATION" --no-build \
+            --project benchmark/Clipper2.PortProfile -- golden verify Results/golden-hashes.txt
+
+      - name: C++ fidelity check (195 boolean + 2 offset cases)
+        run: |
+          dotnet run -c "$CONFIGURATION" --no-build \
+            --project benchmark/Clipper2.PortProfile -- fidelity Results/fidelity-cpp.txt
+
+      - name: Golden output check (Z flavour)
+        run: dotnet run -c "$CONFIGURATION" --no-build --project benchmark/Clipper2.PortProfileZ
+
+      - name: Pack
+        run: dotnet pack "$PACKAGE_PROJECT" -c "$CONFIGURATION" --no-build -o artifacts/packages
+
+      - name: Inspect the package
+        run: |
+          set -euo pipefail
+          nupkg=$(ls artifacts/packages/*.nupkg)
+          echo "package: $nupkg"
+          unzip -l "$nupkg"
+          unzip -l "$nupkg" | grep -q 'lib/net10.0/Clipper2Lib.dll' || { echo "::error::the package has no net10.0 assembly"; exit 1; }
+          unzip -l "$nupkg" | grep -q 'README.md' || { echo "::error::the package has no README"; exit 1; }
+
+      - name: Smoke-test the package
+        run: |
+          set -euo pipefail
+          proj="$RUNNER_TEMP/pkgtest"
+          dotnet new console -o "$proj" -f net10.0
+          dotnet add "$proj" package Clipper2Sharp \
+            --source "$GITHUB_WORKSPACE/artifacts/packages" \
+            --prerelease
+          printf '%s\n' \
+            'using Clipper2Lib;' \
+            '' \
+            'Paths64 subject = new() { new Path64 { new Point64(0, 0), new Point64(100, 0), new Point64(100, 100) } };' \
+            'Paths64 clip = new() { new Path64 { new Point64(50, 50), new Point64(150, 50), new Point64(150, 150) } };' \
+            '' \
+            'Paths64 result = Clipper.Intersect(subject, clip, FillRule.NonZero);' \
+            'if (result.Count != 1)' \
+            '{' \
+            '  Console.Error.WriteLine($"expected 1 path, got {result.Count}");' \
+            '  return 1;' \
+            '}' \
+            'Console.WriteLine($"package smoke test ok: {result.Count} path, area {Clipper.Area(result)}");' \
+            'return 0;' \
+            > "$proj/Program.cs"
+          dotnet run --project "$proj" -c "$CONFIGURATION"
+
+      - name: Upload the test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: artifacts/test-results
+          if-no-files-found: ignore
+
+      - name: Upload the package
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: artifacts/packages/*
+          if-no-files-found: error
+
+      - name: Report the package version
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props | head -1 | tr -d '[:space:]')
+          {
+            echo "### Clipper2Sharp $version"
+            echo
+            echo "\`Clipper2Sharp.$version.nupkg\` + symbols are in the \`nupkg\` artifact."
+          } >> "$GITHUB_STEP_SUMMARY"

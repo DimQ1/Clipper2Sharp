@@ -71,6 +71,27 @@ use (`Tests/Polygons.txt` with 195 boolean cases, `Lines.txt`, `Offsets.txt`,
 Minkowski, sorter, multi-threaded-path, point locator, parallel boolean and
 reusable-data tests: **35 tests, all green**.
 
+## Packaging and CI
+
+The library ships as the **`Clipper2Sharp`** NuGet package (assembly and namespace
+stay `Clipper2Lib`, so it is a drop-in for the upstream C# port). Two GitHub Actions
+workflows cover it:
+
+* `ci.yml` — on every push and pull request: build, the 35 tests, the
+  **bit-exactness gates** (`golden verify` on the whole corpus, `fidelity` against
+  the C++ dump, the Z flavour's golden), `dotnet pack`, an inspection of the
+  `.nupkg`, and a scratch project that consumes the package and calls it;
+* `publish.yml` — on a `v*` tag: the same gates, then push to nuget.org, using
+  trusted publishing (OIDC, keyless) or a `NUGET_API_KEY` secret.
+
+Both build `Clipper2Sharp.Ci.slnx`, the full solution minus the A/B benchmark, which
+needs the upstream C# checkout. The one-time nuget.org setup, the release steps and
+a troubleshooting table are in `docs/nuget-release.md`; to build a package locally:
+
+```powershell
+dotnet pack src/Clipper2Lib/Clipper2Lib.csproj -c Release -o artifacts
+```
+
 ## Fidelity
 
 * Against the **C++ sources** the port is bit for bit identical on all 197 cases

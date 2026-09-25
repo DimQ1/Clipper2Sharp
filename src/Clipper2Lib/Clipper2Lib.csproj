@@ -7,9 +7,25 @@
     <Title>Clipper2Sharp</Title>
     <Description>Polygon Clipping and Offsetting library - C# port of the Clipper2 C++ implementation.</Description>
     <PackageTags>geometry;polygon;clipping;inflate;intersection;union;difference;offsetting;boolean-operations</PackageTags>
+    <!-- the upstream documentation describes the API this port keeps -->
     <PackageProjectUrl>https://www.angusj.com/clipper2/Docs/Overview.htm</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/AngusJohnson/Clipper2</RepositoryUrl>
+    <!-- the sources of this package, i.e. the port, not the original repository -->
+    <RepositoryUrl>https://github.com/DimQ1/Clipper2Sharp</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- symbols go to nuget.org next to the package (dotnet nuget push *.snupkg) -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- the repository README is the package readme (shown on nuget.org) -->
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
 </Project>
