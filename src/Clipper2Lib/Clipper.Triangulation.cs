@@ -13,6 +13,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 #if USINGZ
@@ -52,9 +53,17 @@ namespace Clipper2Lib
     public Edge? prevE = null;
   }
 
+  /// <summary>The three edges of a triangle, stored inline (no separate array
+  /// object per triangle).</summary>
+  [InlineArray(3)]
+  internal struct Edge3
+  {
+    private Edge _e0;
+  }
+
   internal class Triangle
   {
-    public Edge[] edges = new Edge[3];
+    public Edge3 edges;
 
     public Triangle(Edge e1, Edge e2, Edge e3)
     {
@@ -163,9 +172,13 @@ namespace Clipper2Lib
 
     private static void RemoveEdgeFromVertex(Vertex2 vert, Edge edge)
     {
-      int idx = vert.edges.IndexOf(edge);
+      // nb: a plain reference scan (List.IndexOf goes through EqualityComparer)
+      List<Edge> edges = vert.edges;
+      int idx = -1;
+      for (int i = 0; i < edges.Count; i++)
+        if (ReferenceEquals(edges[i], edge)) { idx = i; break; }
       if (idx < 0) InternalClipper.DoError(Clipper2Error.UndefinedError);
-      vert.edges.RemoveAt(idx);
+      edges.RemoveAt(idx);
     }
 
     private static bool FindLocMinIdx(Path64 path, int len, ref int idx)
@@ -329,42 +342,46 @@ namespace Clipper2Lib
       // triangleA and one from triangleB) that touch edge.vL.
       // And edgesB will contain the two edges that touch edge.vR.
 
-      Edge?[] edgesA = new Edge?[3];
-      Edge?[] edgesB = new Edge?[3];
+      // nb: the C++ uses two 3-slot arrays of which slots 1 and 2 are used;
+      // they are plain locals here (no allocation per call)
+      Edge? edgesA1 = null, edgesA2 = null, edgesB1 = null, edgesB2 = null;
+      Triangle triA = edge.triA, triB = edge.triB;
       for (int i = 0; i < 3; ++i)
       {
-        if (ReferenceEquals(edge.triA.edges[i], edge)) continue;
-        switch (EdgeContains(edge.triA.edges[i], edge.vL!))
+        Edge ei = triA.edges[i];
+        if (ReferenceEquals(ei, edge)) continue;
+        switch (EdgeContains(ei, edge.vL!))
         {
           case EdgeContainsResult.left:
-            edgesA[1] = edge.triA.edges[i];
-            vertA = edge.triA.edges[i].vR!;
+            edgesA1 = ei;
+            vertA = ei.vR!;
             break;
           case EdgeContainsResult.right:
-            edgesA[1] = edge.triA.edges[i];
-            vertA = edge.triA.edges[i].vL!;
+            edgesA1 = ei;
+            vertA = ei.vL!;
             break;
           default:
-            edgesB[1] = edge.triA.edges[i];
+            edgesB1 = ei;
             break;
         }
       }
 
       for (int i = 0; i < 3; ++i)
       {
-        if (ReferenceEquals(edge.triB.edges[i], edge)) continue;
-        switch (EdgeContains(edge.triB.edges[i], edge.vL!))
+        Edge ei = triB.edges[i];
+        if (ReferenceEquals(ei, edge)) continue;
+        switch (EdgeContains(ei, edge.vL!))
         {
           case EdgeContainsResult.left:
-            edgesA[2] = edge.triB.edges[i];
-            vertB = edge.triB.edges[i].vR!;
+            edgesA2 = ei;
+            vertB = ei.vR!;
             break;
           case EdgeContainsResult.right:
-            edgesA[2] = edge.triB.edges[i];
-            vertB = edge.triB.edges[i].vL!;
+            edgesA2 = ei;
+            vertB = ei.vL!;
             break;
           default:
-            edgesB[2] = edge.triB.edges[i];
+            edgesB2 = ei;
             break;
         }
       }
@@ -388,41 +405,43 @@ namespace Clipper2Lib
       edge.vL = vertA;
       edge.vR = vertB;
 
-      edge.triA.edges[0] = edge;
+      triA.edges[0] = edge;
       for (int i = 1; i < 3; ++i)
       {
-        edge.triA.edges[i] = edgesA[i]!;
-        if (edgesA[i] == null) InternalClipper.DoError(Clipper2Error.UndefinedError);
-        if (IsLooseEdge(edgesA[i]!))
-          pendingDelaunayStack.Push(edgesA[i]!);
+        Edge? ea = (i == 1) ? edgesA1 : edgesA2;
+        triA.edges[i] = ea!;
+        if (ea == null) InternalClipper.DoError(Clipper2Error.UndefinedError);
+        if (IsLooseEdge(ea!))
+          pendingDelaunayStack.Push(ea!);
         // since each edge has its own triangleA and triangleB, we have to be careful
         // to update the correct one ...
-        if (ReferenceEquals(edgesA[i]!.triA, edge.triA) ||
-          ReferenceEquals(edgesA[i]!.triB, edge.triA)) continue;
+        if (ReferenceEquals(ea!.triA, triA) ||
+          ReferenceEquals(ea.triB, triA)) continue;
 
-        if (ReferenceEquals(edgesA[i]!.triA, edge.triB))
-          edgesA[i]!.triA = edge.triA;
-        else if (ReferenceEquals(edgesA[i]!.triB, edge.triB))
-          edgesA[i]!.triB = edge.triA;
+        if (ReferenceEquals(ea.triA, triB))
+          ea.triA = triA;
+        else if (ReferenceEquals(ea.triB, triB))
+          ea.triB = triA;
         else InternalClipper.DoError(Clipper2Error.UndefinedError);
       }
 
-      edge.triB.edges[0] = edge;
+      triB.edges[0] = edge;
       for (int i = 1; i < 3; ++i)
       {
-        edge.triB.edges[i] = edgesB[i]!;
-        if (edgesB[i] == null) InternalClipper.DoError(Clipper2Error.UndefinedError);
-        if (IsLooseEdge(edgesB[i]!))
-          pendingDelaunayStack.Push(edgesB[i]!);
+        Edge? eb = (i == 1) ? edgesB1 : edgesB2;
+        triB.edges[i] = eb!;
+        if (eb == null) InternalClipper.DoError(Clipper2Error.UndefinedError);
+        if (IsLooseEdge(eb!))
+          pendingDelaunayStack.Push(eb!);
         // since each edge has its own triangleA and triangleB, we have to be careful
         // to update the correct one ...
-        if (ReferenceEquals(edgesB[i]!.triA, edge.triB) ||
-          ReferenceEquals(edgesB[i]!.triB, edge.triB)) continue;
+        if (ReferenceEquals(eb!.triA, triB) ||
+          ReferenceEquals(eb.triB, triB)) continue;
 
-        if (ReferenceEquals(edgesB[i]!.triA, edge.triA))
-          edgesB[i]!.triA = edge.triB;
-        else if (ReferenceEquals(edgesB[i]!.triB, edge.triA))
-          edgesB[i]!.triB = edge.triB;
+        if (ReferenceEquals(eb.triA, triA))
+          eb.triA = triB;
+        else if (ReferenceEquals(eb.triB, triA))
+          eb.triB = triB;
         else InternalClipper.DoError(Clipper2Error.UndefinedError);
       }
     }
@@ -1139,6 +1158,14 @@ namespace Clipper2Lib
       long totalVertexCount = 0;
       foreach (Path64 path in paths) totalVertexCount += path.Count;
       if (totalVertexCount == 0) return false;
+
+      // nb: a triangulation of n vertices has ~3n edges and ~2n triangles, so the
+      // working lists are sized once instead of growing (and copying) repeatedly
+      int n = (int) Math.Min(totalVertexCount, int.MaxValue / 4);
+      allVertices.EnsureCapacity(allVertices.Count + n);
+      allEdges.EnsureCapacity(allEdges.Count + 3 * n);
+      allTriangles.EnsureCapacity(allTriangles.Count + 2 * n);
+      pendingDelaunayStack.EnsureCapacity(n);
 
       foreach (Path64 path in paths)
         AddPath(path);

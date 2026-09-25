@@ -16,11 +16,16 @@ decisions were taken where C# and C++ differ.
 | `include/clipper2/clipper.h` | `Clipper.cs` | simple (static) API + `Utils`-level helpers |
 | `CPP/Utils/clipper.svg.*`, `clipfileload/save.*` | `utils/Clipper2.SVG`, `utils/Clipper.FileIO` | SVG reader/writer, test file IO |
 
-Pointer based C++ structures map onto C# classes (`Vertex`, `OutPt`, `OutRec`,
-`Active`, `HorzSegment`), so aliasing behaves exactly like the C++ code.
-`IntersectNode` is a struct (as in the C++ `std::vector<IntersectNode>`), and the
-scanline priority queue is a hand written max-heap over `long[]`
-(`ScanlineHeap`) mirroring `std::priority_queue<int64_t>`.
+Pointer based C++ structures map onto C# in two ways. `OutRec` and `LocalMinima`
+are classes (aliasing behaves exactly like the C++ pointers). The three structures
+the sweep touches millions of times - `Active`, `OutPt` and `Vertex` - are
+structs in arrays owned by the engine and link to each other by int handles
+(round 3, §4.6): the C++ `e->next_in_ael` becomes `A(e).nextInAEL`, a null
+pointer becomes `-1`, and pointer equality becomes handle equality, so the
+algorithm reads line for line like the C++ while relinking writes plain ints.
+`IntersectNode`, `HorzSegment` and `HorzJoin` are value types holding handles (as
+in the C++ `std::vector`s), and the scanline priority queue is a hand written
+max-heap over `long[]` (`ScanlineHeap`) mirroring `std::priority_queue<int64_t>`.
 
 ## 2. Public API
 
@@ -38,6 +43,12 @@ C++ headers): `Clipper.Length`, `Clipper.NearCollinear`,
 `Clipper.Path2ContainsPath1`, `Clipper.CheckPolytreeFullyContainsChildren`,
 `Clipper.Ellipse(Rect64/RectD, steps)` and the `C++`-style
 `BooleanOp(clipType, fillRule, subject, clip)` overloads.
+
+Round 3 (§4.6) adds three entry points that neither the C++ nor the upstream C#
+has: `PointInPolygonLocator` and `Clipper.PointInPolygon(polygon, points, results)`
+(many queries against one polygon, answers identical to the single call), and
+`Clipper.BooleanOpParallel` (independent clusters clipped in parallel; the same
+regions up to integer rounding, so it is a separate, opt-in call).
 
 ### 2.1 Enum member order (`JoinType`)
 
@@ -79,14 +90,16 @@ matches, and the ported test suite (`tests/Clipper2.Tests`, 28 tests) passes.
 
 ## 4. Memory and performance work
 
-The C++ engine owns its vertices in one contiguous `Vertex[]` block. C#
-reference types cannot do that, so equivalence is reached by pooling:
+The C++ engine owns its vertices in one contiguous `Vertex[]` block. Since
+round 3 the port does the same, and goes further (§4.6): vertices, active edges
+and out-points are structs in arrays, and only the out-records remain objects:
 
-* `Clipper.Pools.cs` — growable pools of `Vertex`, `OutPt` and `OutRec` objects
-  that are reused by every successive operation of the same `ClipperBase`
-  (mirroring the upstream C# `PooledList`/`VertexPoolList` design). A reused
-  `OutRec` always gets a fresh `Path64` because out-rec paths are handed back to
-  the caller.
+* `Clipper.Pools.cs` — the `VertexStore` (the engine's vertex array) and a
+  growable pool of `OutRec` objects reused by every successive operation of the
+  same `ClipperBase`. A reused `OutRec` never hands out an old `Path64`, because
+  out-rec paths are given to the caller (they are created only for polytrees).
+  (Rounds 1 and 2 pooled `Vertex` and `OutPt` *objects* here, mirroring the
+  upstream C# `PooledList`/`VertexPoolList` design.)
 * `Clipper.BulkOps.cs` — SIMD, span and threading primitives:
   * `ScanlineHeap` — allocation free max-heap (replaces `PriorityQueue<long,long>`).
   * `MinMaxInterleaved` — `Vector<long>`/`Vector<double>` bounding box reduction
@@ -341,5 +354,115 @@ Those areas — the union's sweep, the allocation left on the small rows, the
 legalisation loop and the point-in-polygon scan — are also the `nextTargets` list
 inside `Results/baseline.json`, so the next optimisation round can pick them up
 without re-deriving them (see §4.2 for how to compare against the recorded point).
+
+### 4.6 Round 3: arenas, a golden output check, new entry points
+
+The plan for this round is `docs/optimization-plan.md`; this section records what
+was done and what it measured. The step numbers come from
+`benchmark/Clipper2.PortProfile` (the port alone, no reference library in the
+process) run against a build of the round 2 commit, the two processes
+alternating three times per workload; the recorded pairs against the upstream C#
+port and native C++ are in `Results/BASELINE.md`.
+
+**The guard.** Before any change, `PortProfile golden record` hashed the complete
+output of 6409 operations of the round 2 build into `Results/golden-hashes.txt`:
+every coordinate, the path order and the polytree nesting of booleans (paths,
+open paths, polytrees, `ClipperD`, reverse/collinear options, a second operation
+on the same engine), offsets with every join and end type, rect clipping,
+simplification, triangulation, point-in-polygon, Minkowski, the `Lines.txt` and
+polytree fixtures, and a deterministic 4000 case fuzz corpus (grids of 20 units
+full of coincident, collinear and horizontal edges; coordinates up to 4e12, whose
+differences exceed 2^31; star polygons with shared horizontals; open paths).
+Every change below was accepted only with `golden verify` reporting 0 of 6409
+different and `fidelity` reporting 197 of 197 identical to the C++; the Z flavour
+has the same kind of check (`benchmark/Clipper2.PortProfileZ`, 1500 Z-callback
+cases).
+
+**What changed, and what each step measured** (speed-up against the round 2
+build; allocation per operation where it moved):
+
+| step | union of 249 paths | boolean ops (195) | offset groups | notes |
+|---|---:|---:|---:|---|
+| two-tier predicates, lazy out-rec paths, exact-size output, struct horizontal segments, stable sort without delegates, exact incremental area | 1.00x, 32.7 -> 28.2 MB | 1.0x, 17.2 -> 15.7 MB | 1.0x | `Area(OutPt)` (7% of the union) left the profile |
+| `Active` arena (struct, int links), plain-data intersection nodes | 1.52x | 1.14x | **0.87x** | the offset rows got *slower*, see below |
+| handles as byte offsets, explicit `Active` layout | 1.68x | 1.13x | 0.98x | Miter offset back to 1.01x |
+| per-thread engine for `ClipperOffset` / `Clipper.BooleanOp`, offset paths fed straight in | 1.68x | 1.13x | 1.07x, 13.7 -> 3.5 MB | |
+| no merge passes over an ordered scanbeam | 1.67x | 1.14x | 1.13x | |
+| `OutPt` arena (32 byte struct, out-rec as an index, pooled array) | 1.74x, **1.9 MB** | 1.28x, 7.6 MB | 1.15x | |
+| `Vertex` arena (`VertexStore`) | 1.97x | 1.32x | 1.18x | |
+| X fast path of `IsValidAelOrder` inlined into the AEL walks | **1.84x** | **1.28x** | **1.15x** | Miter offset 1.00x -> 1.08x |
+
+(The machine's load changes from run to run, so read the columns as trends; the
+last row was measured in a different window than the row above it.)
+
+Lessons worth keeping:
+
+* **Write barriers, not arithmetic, were the gap to C++.** The micro benchmarks
+  (`benchmark/Clipper2.MicroBench`) measured the same list surgery on objects
+  and on a struct array: an adjacent AEL swap 11.1 ns vs 3.3 ns, the copy-to-SEL
+  pass 6.3 vs 3.4 ns per edge, the intersection sort 2.0x faster on nodes without
+  references. The predicates were already near their floor (12.3 ns with
+  `Int128`, 9.5 ns with the 64 bit tier).
+* **An index handle costs a multiplication in every pointer chase.** With
+  `Active` at 112 bytes, `A(e).nextInAEL` became `imul + add + load` where the
+  object version is a single load, and the offset unions - long AEL walks, few
+  intersections - ran 13% slower than with objects. Handles holding the byte
+  offset (`load + add`) plus an explicit layout that keeps the walked fields in
+  the first 64 bytes of the element removed the regression. Bisection (the phase
+  1 engine against the arena engine on the same workload) located it.
+* **A large arena must be pooled.** More than ~700 actives is a large object heap
+  allocation; all arenas are rented from `ArrayPool` and returned by `CleanUp`.
+* **The out-point arena holds no references at all** (the owning `OutRec` is an
+  index into the out-rec list), so it is never scanned by the GC and needs no
+  clearing - that is what took the union from 32.7 MB to 1.9 MB per operation.
+* **Exactness of the incremental area.** The ring's shoelace sum is kept exactly
+  in Int128 across splits; `DoSplitOp` only needs three decisions from the C++
+  double area (below 2, its sign, smaller than the split triangle), and the exact
+  value decides them unless the double sum could land on the other side of a
+  threshold (bound: n rounding errors of at most u times the sum of |terms|, with
+  a safety factor of 2). Then the C++ double loop runs, in the same order, so
+  every decision is the C++ one by construction.
+* **`ReuseableDataContainer64` now copies.** Its vertices are appended to the
+  engine's store with shifted links; the engine never changes a vertex while
+  clipping, so this behaves like the shared C++ vertices (and survives clearing
+  the container; `TestReuseableDataContainer` pins both).
+
+**New entry points** (opt-in; `Clipper.BooleanOp` and the single
+`PointInPolygon` are unchanged):
+
+* `PointInPolygonLocator` / `Clipper.PointInPolygon(polygon, points, results)`:
+  bounding box rejection (two points per 256 bit compare) and edges bucketed by
+  Y. The scan it replaces visits each vertex on the query's line and each edge
+  where the side changes; every visit only reports 'on' or toggles the parity, so
+  the order of the visits does not matter, and an edge that ends on the line
+  after a run of vertices on it needs the side of the last vertex off the line,
+  which is precomputed per vertex. Answers are identical
+  (`TestPointInPolygonLocator`: 400 random polygons with horizontal runs,
+  vertical edges and duplicates, probes on every vertex and edge midpoint); the
+  benchmark's 200k x 249 probes take 82 ms instead of 711 ms.
+* `Clipper.BooleanOpParallel`: union-find over bounding box overlap, clusters
+  clipped in parallel. Not bit-identical: the other clusters' scanlines split a
+  cluster's scanbeams, and an intersection rounded outside its beam is snapped to
+  the beam's edge, so vertices can differ by a unit (about 1 ppm of a path's area
+  on the test). The gain exceeds the thread count because one sweep walks the
+  active edges of every cluster sharing a band of Y: 400 clusters of 8 ellipses
+  take 1775 ms as one operation and 33 ms split.
+
+**Measured and rejected** (kept out of the library):
+
+* a branchless intersection-node comparer: 14.8 ms vs 13.1 ms per 100k sort;
+* a floating point filter before the exact predicate: slower than the exact
+  64 bit / `BigMul` path on integer input;
+* an unchecked (`Unsafe.Add`) and a SIMD (two points per compare) Y scan in the
+  single `PointInPolygon`: no gain - the cost is the call, not the scan;
+* presizing the out-point and out-rec pools from the input: within noise, and it
+  over-allocates for intersection results.
+
+What is left (the `nextTargets` of `Results/baseline.json`): the Miter offset
+(0.80x of C++, long AEL walks), the single point-in-polygon call (0.62x, call
+overhead on short paths - use the locator), the intersection sort (25% of the
+big union, algorithm fixed by the tie order), and the triangulator's per vertex
+edge lists.
+
 
 

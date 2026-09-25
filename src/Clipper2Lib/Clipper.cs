@@ -24,7 +24,7 @@ namespace Clipper2Lib
   // PRE-COMPILER CONDITIONAL ...
   // USINGZ: For user defined Z-coordinates. See Clipper.SetZ
 
-  public static class Clipper
+  public static partial class Clipper
   {
     private static readonly Rect64 invalidRect64 = new Rect64(false);
     public static Rect64 InvalidRect64 => invalidRect64;
@@ -93,11 +93,19 @@ namespace Clipper2Lib
     {
       Paths64 solution = new Paths64();
       if (subject == null) return solution;
-      Clipper64 c = new Clipper64();
-      c.AddSubject(subject);
-      if (clip != null && clip.Count > 0)
-        c.AddClip(clip);
-      c.Execute(clipType, fillRule, solution);
+      // nb: a per thread engine, so its object pools survive from call to call
+      Clipper64 c = Clipper64.RentShared();
+      try
+      {
+        c.AddSubject(subject);
+        if (clip != null && clip.Count > 0)
+          c.AddClip(clip);
+        c.Execute(clipType, fillRule, solution);
+      }
+      finally
+      {
+        Clipper64.ReturnShared(c);
+      }
       return solution;
     }
 
@@ -105,11 +113,18 @@ namespace Clipper2Lib
       Paths64 subject, Paths64? clip, PolyTree64 polytree)
     {
       if (subject == null) return;
-      Clipper64 c = new Clipper64();
-      c.AddSubject(subject);
-      if (clip != null && clip.Count > 0)
-        c.AddClip(clip);
-      c.Execute(clipType, fillRule, polytree);
+      Clipper64 c = Clipper64.RentShared();
+      try
+      {
+        c.AddSubject(subject);
+        if (clip != null && clip.Count > 0)
+          c.AddClip(clip);
+        c.Execute(clipType, fillRule, polytree);
+      }
+      finally
+      {
+        Clipper64.ReturnShared(c);
+      }
     }
 
     public static PathsD BooleanOp(ClipType clipType, FillRule fillRule,
@@ -1006,9 +1021,30 @@ namespace Clipper2Lib
       return (cp * cp) / (DistanceSqr(pt1, pt2) * DistanceSqr(pt2, pt3)) < sinSqrdMinAngleRads;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static PointInPolygonResult PointInPolygon(Point64 pt, Path64 polygon)
     {
       return InternalClipper.PointInPolygon(pt, polygon);
+    }
+
+    /// <summary>
+    /// Locates many points against one polygon: results[i] is exactly what
+    /// PointInPolygon(points[i], polygon) returns. The polygon is prepared once
+    /// (bounding box plus edges bucketed by Y, see PointInPolygonLocator), so a
+    /// query only visits the edges its horizontal line can meet.
+    /// </summary>
+    public static void PointInPolygon(Path64 polygon, ReadOnlySpan<Point64> points,
+      Span<PointInPolygonResult> results)
+    {
+      if (results.Length < points.Length)
+        throw new ArgumentException("results is shorter than points", nameof(results));
+      if (points.Length < 16)
+      {
+        for (int i = 0; i < points.Length; i++)
+          results[i] = InternalClipper.PointInPolygon(points[i], polygon);
+        return;
+      }
+      new PointInPolygonLocator(polygon).Locate(points, results);
     }
 
     public static PointInPolygonResult PointInPolygon(PointD pt,
@@ -1096,7 +1132,7 @@ namespace Clipper2Lib
 
     // Ramer-Douglas-Peucker -----------------------------------------------------
 
-    internal static void RDP(Path64 path, int begin, int end, double epsSqrd, List<bool> flags)
+    internal static void RDP(Path64 path, int begin, int end, double epsSqrd, Span<bool> flags)
     {
       while (true)
       {
@@ -1129,11 +1165,15 @@ namespace Clipper2Lib
     {
       int len = path.Count;
       if (len < 5) return path;
-      List<bool> flags = new List<bool>(new bool[len]);
+      // nb: the flags come from the array pool (cleared, the algorithm relies on it)
+      using BulkOps.Scratch<bool> flagScratch = new BulkOps.Scratch<bool>();
+      Span<bool> flags = flagScratch.Rent(len);
       flags[0] = true;
       flags[len - 1] = true;
       RDP(path, 0, len - 1, Sqr(epsilon), flags);
-      Path64 result = new Path64(len);
+      int kept = 0;
+      for (int i = 0; i < len; ++i) if (flags[i]) kept++;
+      Path64 result = new Path64(kept);
       for (int i = 0; i < len; ++i)
         if (flags[i]) result.Add(path[i]);
       return result;
@@ -1147,7 +1187,7 @@ namespace Clipper2Lib
       return result;
     }
 
-    internal static void RDP(PathD path, int begin, int end, double epsSqrd, List<bool> flags)
+    internal static void RDP(PathD path, int begin, int end, double epsSqrd, Span<bool> flags)
     {
       while (true)
       {
@@ -1180,11 +1220,15 @@ namespace Clipper2Lib
     {
       int len = path.Count;
       if (len < 5) return path;
-      List<bool> flags = new List<bool>(new bool[len]);
+      // nb: the flags come from the array pool (cleared, the algorithm relies on it)
+      using BulkOps.Scratch<bool> flagScratch = new BulkOps.Scratch<bool>();
+      Span<bool> flags = flagScratch.Rent(len);
       flags[0] = true;
       flags[len - 1] = true;
       RDP(path, 0, len - 1, Sqr(epsilon), flags);
-      PathD result = new PathD(len);
+      int kept = 0;
+      for (int i = 0; i < len; ++i) if (flags[i]) kept++;
+      PathD result = new PathD(kept);
       for (int i = 0; i < len; ++i)
         if (flags[i]) result.Add(path[i]);
       return result;

@@ -19,5 +19,8 @@
   </Folder>
   <Folder Name="/benchmark/">
     <Project Path="benchmark/Clipper2.Benchmark/Clipper2.Benchmark.csproj" />
+    <Project Path="benchmark/Clipper2.MicroBench/Clipper2.MicroBench.csproj" />
+    <Project Path="benchmark/Clipper2.PortProfile/Clipper2.PortProfile.csproj" />
+    <Project Path="benchmark/Clipper2.PortProfileZ/Clipper2.PortProfileZ.csproj" />
   </Folder>
 </Solution>

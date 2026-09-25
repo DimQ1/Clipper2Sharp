@@ -834,8 +834,39 @@ namespace Clipper2Lib
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static bool ProductsAreEqual(long a, long b, long c, long d)
     {
-      // nb: in C# Int128 arithmetic is exact here (unlike 64 bit multiplication)
-      return (Int128) a * b == (Int128) c * d;
+      // nb: exact in both tiers. When every factor fits in 31 bits (|v| < 2^31)
+      // each product fits in 62 bits, so plain 64 bit multiplication is exact;
+      // otherwise the full 128 bit products are compared (Math.BigMul is one
+      // widening 'imul'). The guard ORs the one's complement magnitudes
+      // (v ^ (v >> 63) is |v| for v >= 0 and |v| - 1 for v < 0), so a single
+      // compare tests all four factors - see docs/optimization-plan.md 5.2.
+      if (FitsIn31Bits(a, b, c, d)) return a * b == c * d;
+      long hi1 = Math.BigMul(a, b, out long lo1);
+      long hi2 = Math.BigMul(c, d, out long lo2);
+      return hi1 == hi2 && lo1 == lo2;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool FitsIn31Bits(long a, long b, long c, long d)
+    {
+      long m = (a ^ (a >> 63)) | (b ^ (b >> 63)) | (c ^ (c >> 63)) | (d ^ (d >> 63));
+      return (ulong) m < (1UL << 31);
+    }
+
+    /// <summary>Returns the sign of a*b - c*d, exactly (see ProductsAreEqual).</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int ProductsCompare(long a, long b, long c, long d)
+    {
+      if (FitsIn31Bits(a, b, c, d))
+      {
+        long ab = a * b, cd = c * d;
+        return (ab > cd ? 1 : 0) - (ab < cd ? 1 : 0);
+      }
+      long hi1 = Math.BigMul(a, b, out long lo1);
+      long hi2 = Math.BigMul(c, d, out long lo2);
+      if (hi1 != hi2) return hi1 > hi2 ? 1 : -1;
+      ulong u1 = (ulong) lo1, u2 = (ulong) lo2;
+      return (u1 > u2 ? 1 : 0) - (u1 < u2 ? 1 : 0);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -847,13 +878,9 @@ namespace Clipper2Lib
       long d = pt3.X - pt2.X;
 
       // nb: the differences can exceed 32 bits, so the products need the wide
-      // type (#834, #835). Int128 is a single widening multiply, which is why
-      // this is cheaper than the hand rolled decompositions of the older ports.
-      Int128 ab = (Int128) a * b;
-      Int128 cd = (Int128) c * d;
-      if (ab > cd) return 1;
-      if (ab < cd) return -1;
-      return 0;
+      // type (#834, #835): exact 64 bit products when every difference fits in
+      // 31 bits, exact 128 bit products otherwise (ProductsCompare)
+      return ProductsCompare(a, b, c, d);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

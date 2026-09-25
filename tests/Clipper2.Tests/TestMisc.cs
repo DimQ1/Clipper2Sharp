@@ -333,6 +333,163 @@ namespace Clipper2Lib.UnitTests
     }
 
     [TestMethod]
+    public void TestPointInPolygonLocator()
+    {
+      // the prepared locator must give exactly the answers of the vertex scan,
+      // including every 'on' case: probes on vertices, on horizontal and sloped
+      // edges, on the lines of horizontal runs, and far outside
+      Random rnd = new Random(4242);
+      for (int round = 0; round < 400; round++)
+      {
+        int n = rnd.Next(3, 60);
+        long range = (round % 4) switch { 0 => 6, 1 => 50, 2 => 5000, _ => 6_000_000_000 };
+        Path64 poly = new Path64(n);
+        for (int i = 0; i < n; i++)
+        {
+          long x = rnd.NextInt64(-range, range + 1), y = rnd.NextInt64(-range, range + 1);
+          if (i > 0 && rnd.Next(4) == 0) y = poly[i - 1].Y;          // horizontal runs
+          if (i > 0 && rnd.Next(9) == 0) x = poly[i - 1].X;          // vertical edges
+          if (i > 0 && rnd.Next(15) == 0) { x = poly[i - 1].X; y = poly[i - 1].Y; } // duplicates
+          poly.Add(new Point64(x, y));
+        }
+        PointInPolygonLocator locator = new PointInPolygonLocator(poly);
+        List<Point64> probes = new List<Point64>();
+        foreach (Point64 v in poly) probes.Add(v);
+        for (int i = 0; i < n; i++)
+        {
+          Point64 a = poly[i], b = poly[(i + 1) % n];
+          probes.Add(new Point64((a.X + b.X) / 2, (a.Y + b.Y) / 2));
+          probes.Add(new Point64(a.X - 1, a.Y));
+          probes.Add(new Point64(a.X + 1, a.Y));
+        }
+        for (int i = 0; i < 300; i++)
+          probes.Add(new Point64(rnd.NextInt64(-range - 2, range + 3), rnd.NextInt64(-range - 2, range + 3)));
+        Point64[] pts = probes.ToArray();
+        PointInPolygonResult[] batch = new PointInPolygonResult[pts.Length];
+        Clipper.PointInPolygon(poly, pts, batch);
+        for (int i = 0; i < pts.Length; i++)
+        {
+          PointInPolygonResult expected = Clipper.PointInPolygon(pts[i], poly);
+          Assert.AreEqual(expected, locator.Locate(pts[i]), $"round {round}, probe {pts[i]}");
+          Assert.AreEqual(expected, batch[i], $"round {round}, batch probe {pts[i]}");
+        }
+      }
+      // degenerate polygons
+      Path64 flat = Clipper.MakePath(new long[] { 0, 5, 10, 5, 20, 5 });
+      Assert.AreEqual(PointInPolygonResult.IsOutside, new PointInPolygonLocator(flat).Locate(new Point64(10, 5)));
+      Assert.AreEqual(Clipper.PointInPolygon(new Point64(10, 5), flat), new PointInPolygonLocator(flat).Locate(new Point64(10, 5)));
+      Path64 two = Clipper.MakePath(new long[] { 0, 0, 10, 10 });
+      Assert.AreEqual(Clipper.PointInPolygon(new Point64(5, 5), two), new PointInPolygonLocator(two).Locate(new Point64(5, 5)));
+    }
+
+    [TestMethod]
+    public void TestBooleanOpParallel()
+    {
+      // clusters of overlapping shapes, far apart from each other: the parallel
+      // entry point must produce the same regions as the single operation
+      Random rnd = new Random(77);
+      Paths64 subj = new Paths64(), clip = new Paths64();
+      for (int k = 0; k < 60; k++)
+      {
+        long ox = (k % 8) * 100_000, oy = (k / 8) * 100_000;
+        for (int j = 0; j < 4; j++)
+        {
+          Path64 e = Clipper.Ellipse(new Point64(ox + rnd.Next(-3000, 3000), oy + rnd.Next(-3000, 3000)),
+            rnd.Next(2000, 9000), rnd.Next(2000, 9000), 90);
+          if (j < 3) subj.Add(e); else clip.Add(e);
+        }
+      }
+      foreach (ClipType ct in new[] { ClipType.Union, ClipType.Intersection, ClipType.Difference, ClipType.Xor })
+        foreach (FillRule fr in new[] { FillRule.NonZero, FillRule.EvenOdd })
+        {
+          Paths64 seq = Clipper.BooleanOp(ct, fr, subj, clip);
+          Paths64 par = Clipper.BooleanOpParallel(ct, fr, subj, clip);
+          // nb: the regions agree up to the engine's integer rounding, not bit for
+          // bit: the other clusters' scanlines split the scanbeams of a cluster
+          // differently in the single operation, and an intersection that rounds
+          // outside its scanbeam is snapped to the beam's edge
+          Assert.AreEqual(seq.Count, par.Count, $"{ct} {fr}: path count");
+          Assert.AreEqual(Clipper.Area(seq), Clipper.Area(par), 1e-5 * Math.Abs(Clipper.Area(seq)) + 1, $"{ct} {fr}: area");
+          // a vertex that moves by a unit changes a path's area by at most about
+          // its perimeter, so that is the per path tolerance
+          List<(double area, double len)> a1 = new List<(double, double)>();
+          List<double> a2 = new List<double>();
+          foreach (Path64 p in seq) a1.Add((Clipper.Area(p), Clipper.Length(p, true)));
+          foreach (Path64 p in par) a2.Add(Clipper.Area(p));
+          a1.Sort(); a2.Sort();
+          for (int i = 0; i < a1.Count; i++)
+            Assert.AreEqual(a1[i].area, a2[i], a1[i].len + 1, $"{ct} {fr}: path {i} area");
+          // deterministic
+          Paths64 par2 = Clipper.BooleanOpParallel(ct, fr, subj, clip);
+          Assert.AreEqual(par.Count, par2.Count);
+          for (int i = 0; i < par.Count; i++) CollectionAssert.AreEqual(par[i], par2[i]);
+        }
+    }
+
+    [TestMethod]
+    public void TestReuseableDataContainer()
+    {
+      // paths handed over through a ReuseableDataContainer64 must clip exactly
+      // like the same paths added directly, also when mixed with direct paths,
+      // reused by several engines, and after the container was cleared
+      Random rnd = new Random(31);
+      for (int round = 0; round < 60; round++)
+      {
+        Paths64 subj = new Paths64(), clip = new Paths64(), open = new Paths64();
+        for (int k = 0; k < rnd.Next(1, 5); k++)
+        {
+          Path64 p = new Path64();
+          for (int i = 0; i < rnd.Next(3, 30); i++) p.Add(new Point64(rnd.Next(-500, 500), rnd.Next(-500, 500)));
+          subj.Add(p);
+        }
+        for (int k = 0; k < rnd.Next(1, 4); k++)
+        {
+          Path64 p = new Path64();
+          for (int i = 0; i < rnd.Next(3, 30); i++) p.Add(new Point64(rnd.Next(-500, 500), rnd.Next(-500, 500)));
+          clip.Add(p);
+        }
+        Path64 line = new Path64();
+        for (int i = 0; i < 6; i++) line.Add(new Point64(rnd.Next(-500, 500), rnd.Next(-500, 500)));
+        open.Add(line);
+        ClipType ct = (ClipType) (1 + round % 4);
+        FillRule fr = (FillRule) (round % 4);
+
+        Clipper64 direct = new Clipper64();
+        direct.AddSubject(subj);
+        direct.AddOpenSubject(open);
+        direct.AddClip(clip);
+        Paths64 expected = new Paths64(), expectedOpen = new Paths64();
+        direct.Execute(ct, fr, expected, expectedOpen);
+
+        ReuseableDataContainer64 data = new ReuseableDataContainer64();
+        data.AddPaths(subj, PathType.Subject, false);
+        data.AddPaths(open, PathType.Subject, true);
+        for (int engine = 0; engine < 2; engine++)
+        {
+          Clipper64 c = new Clipper64();
+          c.AddReuseableData(data);
+          c.AddClip(clip);
+          Paths64 sol = new Paths64(), solOpen = new Paths64();
+          c.Execute(ct, fr, sol, solOpen);
+          Assert.AreEqual(expected.Count, sol.Count, $"round {round}");
+          for (int i = 0; i < sol.Count; i++) CollectionAssert.AreEqual(expected[i], sol[i], $"round {round} path {i}");
+          Assert.AreEqual(expectedOpen.Count, solOpen.Count, $"round {round} open");
+          for (int i = 0; i < solOpen.Count; i++) CollectionAssert.AreEqual(expectedOpen[i], solOpen[i]);
+          if (engine == 0)
+          {
+            // the engine keeps its own copy: clearing the container is harmless
+            data.Clear();
+            Paths64 again = new Paths64(), againOpen = new Paths64();
+            c.Execute(ct, fr, again, againOpen);
+            Assert.AreEqual(expected.Count, again.Count);
+            data.AddPaths(subj, PathType.Subject, false);
+            data.AddPaths(open, PathType.Subject, true);
+          }
+        }
+      }
+    }
+
+    [TestMethod]
     public void TestIntersectNodeSorter()
     {
       // nb: the engine sorts its intersection list with a hand written introsort
@@ -350,7 +507,7 @@ namespace Clipper2Lib.UnitTests
         IntersectNode[] reference = new IntersectNode[n];
         for (int i = 0; i < n; i++)
         {
-          IntersectNode node = new IntersectNode(null!, null!,
+          IntersectNode node = new IntersectNode(-1, -1,
             new Point64(rnd.Next(-span, span), rnd.Next(-span, span)));
           nodes[i] = node;
           reference[i] = node;

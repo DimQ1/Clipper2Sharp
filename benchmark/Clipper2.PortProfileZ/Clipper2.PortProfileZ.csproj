@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- The golden output check for the Z-coordinate flavour (Clipper2ZLib). -->
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Clipper2.PortProfileZ</RootNamespace>
+    <AssemblyName>Clipper2.PortProfileZ</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Clipper2ZLib\Clipper2ZLib.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -50,10 +50,25 @@ namespace Clipper2.Benchmark
           _writeBaselinePath = arg.Substring(17);
       }
 
+      // nb: the development machine runs at 75-85% background load; a raised
+      // priority keeps the short rows from being preempted in the middle of a
+      // repetition (--no-priority measures at normal priority)
+      bool raisePriority = Array.IndexOf(args, "--no-priority") < 0;
+      if (raisePriority)
+      {
+        try
+        {
+          Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
+          System.Threading.Thread.CurrentThread.Priority = System.Threading.ThreadPriority.Highest;
+        }
+        catch (Exception) { raisePriority = false; } // not permitted: measure anyway
+      }
+
       Console.WriteLine("Clipper2Sharp benchmark");
       Console.WriteLine($"  runtime      : {Environment.Version} / {(Environment.Is64BitProcess ? "x64" : "x86")}");
       Console.WriteLine($"  processors   : {Environment.ProcessorCount}");
       Console.WriteLine($"  iterations   : {_iterations} (best of)");
+      Console.WriteLine($"  priority     : {(raisePriority ? "high" : "normal")}");
       if (_baselinePath != null) Console.WriteLine($"  baseline     : {_baselinePath}");
       if (_writeBaselinePath != null) Console.WriteLine($"  writing      : {_writeBaselinePath}");
       Console.WriteLine();

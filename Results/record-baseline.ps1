@@ -89,39 +89,36 @@ $native = [pscustomobject]@{
 }
 
 $verification = [pscustomobject]@{
-  tests                = '29/29 MSTest'
+  tests                = '32/32 MSTest'
+  goldenHashes         = 'Results/golden-hashes.txt: 6409 hashes of the complete output (every coordinate, path order, polytree nesting) over the test corpus and a 4000 case fuzz corpus, recorded from the round 2 build; the round 3 build reproduces all 6409 (dotnet run -c Release --project benchmark/Clipper2.PortProfile -- golden verify)'
   cppFidelity          = '197 of 197 cases identical to the C++ -O2 build (path count and area); the -march=native build differs from its own -O2 sibling on 8 of them (FMA contraction), and the port matches the non-contracting builds'
   cppFidelityFiles     = 'Results/fidelity-cpp.txt vs Results/fidelity-port.txt (diff them case by case)'
   csharpFidelity       = '193 of 195 polygon cases identical to the upstream C# 2.0.0 port; the 2 remaining boolean cases and both offset cases differ where 2.0.0 and 2.0.1 legitimately diverge (the port matches C++)'
-  profileTool          = 'dotnet-trace collect --profile dotnet-sampled-thread-time + dotnet-trace report topN'
-  publicSurface        = 'Clipper2Lib namespace, Clipper64/ClipperD/ClipperOffset/PolyTree/Paths/Point/JoinType... as in the upstream C# port; see docs/porting-notes.md 2.1 for the JoinType member numbering'
+  zFlavour             = 'Clipper2ZLib (USINGZ): 1500 Z-callback cases (booleans, polytrees, offsets, ClipperD) hash identically to the round 2 build'
+  profileTool          = 'dotnet-trace collect (default sampling profile) on benchmark/Clipper2.PortProfile, which runs the port alone + dotnet-trace report topN'
+  publicSurface        = 'Clipper2Lib namespace, Clipper64/ClipperD/ClipperOffset/PolyTree/Paths/Point/JoinType... as in the upstream C# port; see docs/porting-notes.md 2.1 for the JoinType member numbering; round 3 adds PointInPolygonLocator, Clipper.PointInPolygon(polygon, points, results) and Clipper.BooleanOpParallel'
 }
 
 $nextTargets = @(
   [pscustomobject]@{
-    area     = 'union sweep (all 249 paths in one call)'
-    measured = 'BuildIntersectList 12%, IntersectEdges 7%, BuildPaths 5%, DoIntersections 4% of the row'
-    status   = '0.68x of C++: remaining gap is managed overhead in the tight AEL/scanline loops; needs an index/struct based sweep and would put the 197/197 fidelity at risk'
+    area     = 'offset, Miter, delta = 27 (2 large cases)'
+    measured = 'BuildIntersectList 30%, DoHorizontal 15%, DoTopOfScanbeam 8%, InsertLeftEdge 8%, scanline heap 6%'
+    status   = '0.80x of C++: long AEL walks over the actives arena; candidates are a hot/cold split of Active and fewer duplicate scanline pushes'
   }
   [pscustomobject]@{
-    area     = 'allocation on the small rows'
-    measured = 'boolean 1.06x, offset groups 1.08x, union 1.00x, triangulate 0.98x of the reference bytes (deterministic)'
-    status   = 'engine pools cover vertices/out-points/out-recs; left: the per-outrec Path64 in BuildPaths and the temporaries in ClipperOffset and RectClip64'
+    area     = 'point in polygon, single call'
+    measured = '~15 ns per call on 18-vertex paths vs ~9 ns in C++; a 2-points-per-compare SIMD Y scan measured no gain'
+    status   = '0.62x of C++ per call; for many probes use PointInPolygonLocator / Clipper.PointInPolygon(polygon, points, results) - identical answers, 9x faster on this workload'
   }
   [pscustomobject]@{
-    area     = 'Delaunay.ForceLegal'
-    measured = '32% of a triangulation (two frames)'
-    status   = 'already 1.2x faster than C++; the legalisation loop is the next candidate if triangulation matters'
+    area     = 'intersection list sort'
+    measured = '25% of the union of all 249 paths'
+    status   = 'already sorts plain 24 byte nodes; the algorithm itself is fixed (tie order decides bit-exactness), a branchless comparer measured no gain'
   }
   [pscustomobject]@{
-    area     = 'point in polygon'
-    measured = 'the Y-scan loops are ~84% of the row'
-    status   = '0.84x of C++, 1.19x of the C# 2.0.0 port after reading the path through a span; further gains need a SIMD Y scan'
-  }
-  [pscustomobject]@{
-    area     = 'GC throughput on tiny operations'
-    measured = 'GC poll worker + Buffer.Memmove: 42%+10% of boolean ops, 26%+22% of offsets, 85% of rect clip'
-    status   = 'these are the rows where the port already beats C++; cutting per-operation allocation is the lever'
+    area     = 'triangulation'
+    measured = 'GC ~30%, ForceLegal ~33% of a run'
+    status   = '1.33x of C++; the per vertex edge lists (List<Edge>) and per triangle objects are what is left to pool'
   }
 )
 
@@ -192,19 +189,21 @@ foreach ($row in $nativeRows) {
 [void] $md.AppendLine()
 [void] $md.AppendLine("C++ build: $($native.build).")
 [void] $md.AppendLine()
-[void] $md.AppendLine('``port/C++`` above 1.00 means the port is faster; the two rows below 1.00 (the single')
-[void] $md.AppendLine('union of all 249 paths and point-in-polygon) are the ones where the native build''s')
-[void] $md.AppendLine('tight single-threaded loop still wins - see docs/porting-notes.md 4.5 for the shares.')
+[void] $md.AppendLine('``port/C++`` above 1.00 means the port is faster. Pairs are best-of runs taken in one')
+[void] $md.AppendLine('window; the short rows still move by +-10-15% between windows on this machine. The rows')
+[void] $md.AppendLine('below 1.00 are listed with their profile under ''Where the remaining time goes''.')
 [void] $md.AppendLine()
 [void] $md.AppendLine('## Verification status')
 [void] $md.AppendLine()
 [void] $md.AppendLine("- tests: $($verification.tests)")
+if ($verification.goldenHashes) { [void] $md.AppendLine("- golden output hashes: $($verification.goldenHashes)") }
+if ($verification.zFlavour) { [void] $md.AppendLine("- Z flavour: $($verification.zFlavour)") }
 [void] $md.AppendLine("- vs C++: $($verification.cppFidelity). Dumps: ``$($verification.cppFidelityFiles)``")
 [void] $md.AppendLine("- vs upstream C# 2.0.0: $($verification.csharpFidelity)")
 [void] $md.AppendLine("- public surface: $($verification.publicSurface)")
 [void] $md.AppendLine("- profiler: $($verification.profileTool)")
 [void] $md.AppendLine()
-[void] $md.AppendLine('## Where the remaining time goes (profiler round, docs/porting-notes.md 4.5)')
+[void] $md.AppendLine('## Where the remaining time goes (round 3 profile, docs/porting-notes.md 4.6)')
 [void] $md.AppendLine()
 [void] $md.AppendLine('| area | measured share | status |')
 [void] $md.AppendLine('|---|---|---|')

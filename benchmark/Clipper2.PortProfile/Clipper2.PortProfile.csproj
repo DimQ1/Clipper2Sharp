@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Port-only driver: profiling workloads (no reference library in the
+         process, so a trace names only this port's methods), the golden
+         output check that guards bit-exactness, and the C++ fidelity dump. -->
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Clipper2.PortProfile</RootNamespace>
+    <AssemblyName>Clipper2.PortProfile</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <TieredPGO>true</TieredPGO>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Clipper2Lib\Clipper2Lib.csproj" />
+    <ProjectReference Include="..\..\utils\Clipper.FileIO\Clipper.FileIO.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\tests\Clipper2.Tests\TestData\*.txt"
+          CopyToOutputDirectory="PreserveNewest"
+          Link="TestData\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

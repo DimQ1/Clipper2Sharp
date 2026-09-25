@@ -102,6 +102,10 @@ namespace Clipper2Lib
     private readonly Path64 _pathOut = new Path64();
     private Paths64? _solution;
     private PolyTree64? _solutionTree;
+    // when set, offset paths go straight into the engine of the final union
+    // instead of being copied into _solution first (see EmitPathOut)
+    private Clipper64? _engine;
+    private int _emitted;
     private readonly List<Group> _groups = new List<Group>();
     private JoinType _joinType = JoinType.Bevel;
     private EndType _endType = EndType.Polygon;
@@ -489,7 +493,7 @@ namespace Clipper2Lib
       for (int j = 0, k = cnt - 1; j < cnt; k = j, ++j)
         OffsetPoint(group, path, j, k);
       // nb: the C++ emplace_back() copies 'path_out', so a copy is required here too
-      _solution!.Add(new Path64(_pathOut));
+      EmitPathOut();
     }
 
     private void OffsetOpenJoined(Group group, Path64 path)
@@ -565,7 +569,7 @@ namespace Clipper2Lib
       for (int j = highI - 1, k = highI; j > 0; k = j, --j)
         OffsetPoint(group, path, j, k);
       // nb: the C++ emplace_back() copies 'path_out', so a copy is required here too
-      _solution!.Add(new Path64(_pathOut));
+      EmitPathOut();
     }
 
     private void DoGroupOffset(Group group)
@@ -644,7 +648,7 @@ namespace Clipper2Lib
 #endif
           }
 
-          _solution!.Add(new Path64(_pathOut));
+          EmitPathOut();
           continue;
         } // end of offsetting a single point
 
@@ -681,71 +685,109 @@ namespace Clipper2Lib
       return isReversedOrientation;
     }
 
+    /// <summary>
+    /// Hands a finished offset path on: straight into the final union's engine
+    /// when one is attached (the engine copies the points into its vertices at
+    /// once, so _pathOut can be reused - adding the paths one by one gives the
+    /// engine exactly the vertices and local minima, in the same order, that
+    /// adding them as one list would), otherwise as a copy into _solution (the
+    /// C++ emplace_back() copies 'path_out').
+    /// </summary>
+    private void EmitPathOut()
+    {
+      if (_engine != null)
+      {
+        _engine.AddPathDirect(_pathOut, PathType.Subject);
+        _emitted++;
+      }
+      else
+        _solution!.Add(new Path64(_pathOut));
+    }
+
     private void ExecuteInternal(double delta)
     {
       _errorCode = 0;
       if (_groups.Count == 0) return;
 
-      if (Math.Abs(delta) < 0.5) // ie: offset is insignificant
+      // nb: a per thread engine, so its object pools survive from call to call
+      Clipper64 c = Clipper64.RentShared();
+      try
       {
-        foreach (Group group in _groups)
-          foreach (Path64 path in group.pathsIn)
-            _solution!.Add(path);
-      }
-      else
-      {
-        long totalPoints = 0;
-        foreach (Group g in _groups)
-          foreach (Path64 p in g.pathsIn) totalPoints += p.Count;
-
-        if (_groups.Count > 1 && BulkOps.ShouldParallelize(totalPoints))
+        _emitted = 0;
+        if (Math.Abs(delta) < 0.5) // ie: offset is insignificant
         {
-          // nb: each group is completely independent, so the groups are offset
-          // on separate workers and merged in the original group order
-          Paths64[] parts = OffsetGroupsInParallel(delta);
-          foreach (Paths64 part in parts) _solution!.AddRange(part);
+          foreach (Group group in _groups)
+            foreach (Path64 path in group.pathsIn)
+              _solution!.Add(path);
         }
         else
         {
-          _tempLim = (_miterLimit <= 1) ?
-            2.0 :
-            2.0 / (_miterLimit * _miterLimit);
+          long totalPoints = 0;
+          foreach (Group g in _groups)
+            foreach (Path64 p in g.pathsIn) totalPoints += p.Count;
 
-          _delta = delta;
-          foreach (Group group in _groups)
+          if (_groups.Count > 1 && BulkOps.ShouldParallelize(totalPoints))
           {
-            DoGroupOffset(group);
-            if (_errorCode == 0) continue; // all OK
-            _solution!.Clear();
+            // nb: each group is completely independent, so the groups are offset
+            // on separate workers and merged in the original group order
+            Paths64[] parts = OffsetGroupsInParallel(delta);
+            foreach (Paths64 part in parts) _solution!.AddRange(part);
+          }
+          else
+          {
+            _tempLim = (_miterLimit <= 1) ?
+              2.0 :
+              2.0 / (_miterLimit * _miterLimit);
+
+            _delta = delta;
+            _engine = c;
+            try
+            {
+              foreach (Group group in _groups)
+              {
+                DoGroupOffset(group);
+                if (_errorCode == 0) continue; // all OK
+                _solution!.Clear();
+                c.Clear();
+                _emitted = 0;
+              }
+            }
+            finally
+            {
+              _engine = null;
+            }
           }
         }
-      }
 
-      if (_solution!.Count == 0) return;
+        if (_solution!.Count == 0 && _emitted == 0) return;
 
-      bool pathsReversed = CheckReverseOrientation();
-      // clean up self-intersections ...
-      Clipper64 c = new Clipper64();
-      c.PreserveCollinear = _preserveCollinear;
-      // the solution should retain the orientation of the input
-      c.ReverseSolution = _reverseSolution != pathsReversed;
+        bool pathsReversed = CheckReverseOrientation();
+        // clean up self-intersections ...
+        c.PreserveCollinear = _preserveCollinear;
+        // the solution should retain the orientation of the input
+        c.ReverseSolution = _reverseSolution != pathsReversed;
 #if USINGZ
-      c.SetZCallback(ZCB);
+        c.SetZCallback(ZCB);
 #endif
-      c.AddSubject(_solution);
-      if (_solutionTree != null)
-      {
-        if (pathsReversed)
-          c.Execute(ClipType.Union, FillRule.Negative, _solutionTree);
+        if (_solution.Count > 0) c.AddSubject(_solution);
+        if (_solutionTree != null)
+        {
+          if (pathsReversed)
+            c.Execute(ClipType.Union, FillRule.Negative, _solutionTree);
+          else
+            c.Execute(ClipType.Union, FillRule.Positive, _solutionTree);
+        }
         else
-          c.Execute(ClipType.Union, FillRule.Positive, _solutionTree);
+        {
+          if (pathsReversed)
+            c.Execute(ClipType.Union, FillRule.Negative, _solution);
+          else
+            c.Execute(ClipType.Union, FillRule.Positive, _solution);
+        }
       }
-      else
+      finally
       {
-        if (pathsReversed)
-          c.Execute(ClipType.Union, FillRule.Negative, _solution);
-        else
-          c.Execute(ClipType.Union, FillRule.Positive, _solution);
+        Clipper64.ReturnShared(c);
       }
     }
 

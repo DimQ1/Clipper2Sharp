@@ -45,6 +45,109 @@ namespace Clipper2Lib
     protected readonly List<OutPt2?>[] edges_ = new List<OutPt2?>[8]; // clockwise and counter-clockwise
     protected readonly List<Location> start_locs_ = new List<Location>();
 
+    /// <summary>
+    /// Working storage of a clipping batch: the out-points of one path are all
+    /// dead once its result paths have been built, so they are recycled for the
+    /// next path, and result paths are gathered in a scratch path and copied out
+    /// at their exact size. One instance per thread is kept (rented for the
+    /// duration of an Execute, so a re-entrant or parallel use gets its own).
+    /// </summary>
+    private sealed class Work
+    {
+      public readonly List<OutPt2> pool = new List<OutPt2>();
+      public int used;
+      public int highWater;   // out-points handed out since the last Return
+      public readonly Path64 scratch = new Path64();
+
+      [ThreadStatic] private static Work? t_cached;
+
+      public static Work Rent()
+      {
+        Work? w = t_cached;
+        if (w == null) return new Work();
+        t_cached = null;
+        return w;
+      }
+
+      public static void Return(Work w)
+      {
+        if (w.used > w.highWater) w.highWater = w.used;
+        w.used = 0;
+        w.scratch.Clear();
+        // don't keep a huge pool alive
+        if (w.pool.Count > 1 << 16) return;
+        // drop the references into this batch's (now dead) state
+        for (int i = 0; i < w.highWater; i++)
+        {
+          OutPt2 op = w.pool[i];
+          op.next = null; op.prev = null; op.edge = null;
+        }
+        w.highWater = 0;
+        t_cached = w;
+      }
+    }
+
+    private Work? work_;
+
+    private protected void RentWork() { work_ ??= Work.Rent(); }
+
+    private protected void ReturnWork()
+    {
+      if (work_ == null) return;
+      Work.Return(work_);
+      work_ = null;
+    }
+
+    private OutPt2 NewOutPt2(Point64 pt)
+    {
+      OutPt2 op;
+      Work? w = work_;
+      if (w == null)
+        op = new OutPt2();
+      else if (w.used < w.pool.Count)
+      {
+        op = w.pool[w.used++];
+        op.ownerIdx = 0;
+        op.edge = null;
+      }
+      else
+      {
+        op = new OutPt2();
+        w.pool.Add(op);
+        w.used++;
+      }
+      op.pt = pt;
+      return op;
+    }
+
+    /// <summary>Makes the out-points of the previous path available again.</summary>
+    private protected void RecycleOutPts()
+    {
+      if (work_ == null) return;
+      if (work_.used > work_.highWater) work_.highWater = work_.used;
+      work_.used = 0;
+    }
+
+    private protected Path64 PathScratch
+    {
+      get
+      {
+        if (work_ == null) return new Path64();
+        work_.scratch.Clear();
+        return work_.scratch;
+      }
+    }
+
+    /// <summary>Returns the gathered path at its exact size.</summary>
+    private protected Path64 TakeScratchPath(Path64 gathered)
+    {
+      if (work_ == null || !ReferenceEquals(gathered, work_.scratch)) return gathered;
+      Path64 result = new Path64(gathered.Count);
+      result.AddRange(gathered);
+      gathered.Clear();
+      return result;
+    }
+
     public RectClip64(Rect64 rect)
     {
       rect_ = rect;
@@ -362,8 +465,7 @@ namespace Clipper2Lib
       OutPt2 result;
       if (currIdx == 0 || startNew)
       {
-        result = new OutPt2();
-        result.pt = pt;
+        result = NewOutPt2(pt);
         result.next = result;
         result.prev = result;
         results_.Add(result);
@@ -373,9 +475,8 @@ namespace Clipper2Lib
         --currIdx;
         OutPt2 prevOp = results_[currIdx]!;
         if (prevOp.pt == pt) return prevOp;
-        result = new OutPt2();
+        result = NewOutPt2(pt);
         result.ownerIdx = currIdx;
-        result.pt = pt;
         result.next = prevOp.next;
         prevOp.next!.prev = result;
         prevOp.next = result;
@@ -895,7 +996,7 @@ namespace Clipper2Lib
       op = op2; // needed for op cleanup
       if (op2 == null) return new Path64();
 
-      Path64 result = new Path64();
+      Path64 result = PathScratch;
       result.Add(op.pt);
       op2 = op.next;
       while (!ReferenceEquals(op2, op))
@@ -903,7 +1004,7 @@ namespace Clipper2Lib
         result.Add(op2!.pt);
         op2 = op2.next;
       }
-      return result;
+      return TakeScratchPath(result);
     }
 
     public Paths64 Execute(Paths64 paths)
@@ -939,7 +1040,20 @@ namespace Clipper2Lib
     {
       Paths64 result = new Paths64();
       if (rect_.IsEmpty()) return result;
+      RentWork();
+      try
+      {
+        ExecuteSerialCore(paths, result);
+      }
+      finally
+      {
+        ReturnWork();
+      }
+      return result;
+    }
 
+    private void ExecuteSerialCore(Paths64 paths, Paths64 result)
+    {
       foreach (Path64 path in paths)
       {
         if (path.Count < 3) continue;
@@ -970,8 +1084,8 @@ namespace Clipper2Lib
         results_.Clear();
         foreach (List<OutPt2?> edge in edges_) edge.Clear();
         start_locs_.Clear();
+        RecycleOutPts();
       }
-      return result;
     }
   }
 
@@ -1053,8 +1167,8 @@ namespace Clipper2Lib
 
     private Path64 GetPathLines(ref OutPt2? op)
     {
-      Path64 result = new Path64();
-      if (op == null || ReferenceEquals(op, op.next)) return result;
+      if (op == null || ReferenceEquals(op, op.next)) return new Path64();
+      Path64 result = PathScratch;
       op = op.next; // starting at path beginning
       result.Add(op!.pt);
       OutPt2? op2 = op.next;
@@ -1063,7 +1177,7 @@ namespace Clipper2Lib
         result.Add(op2!.pt);
         op2 = op2.next;
       }
-      return result;
+      return TakeScratchPath(result);
     }
 
     public new Paths64 Execute(Paths64 paths)
@@ -1097,7 +1211,20 @@ namespace Clipper2Lib
     {
       Paths64 result = new Paths64();
       if (rect_.IsEmpty()) return result;
+      RentWork();
+      try
+      {
+        ExecuteSerialLinesCore(paths, result);
+      }
+      finally
+      {
+        ReturnWork();
+      }
+      return result;
+    }
 
+    private void ExecuteSerialLinesCore(Paths64 paths, Paths64 result)
+    {
       foreach (Path64 path in paths)
       {
         Rect64 pathrec = InternalClipper.GetBounds(path);
@@ -1114,8 +1241,8 @@ namespace Clipper2Lib
         }
         results_.Clear();
         start_locs_.Clear();
+        RecycleOutPts();
       }
-      return result;
     }
   }
 }

@@ -1,0 +1,213 @@
+Clipper2Sharp benchmark
+  runtime      : 10.0.12 / x64
+  processors   : 12
+  iterations   : 7 (best of)
+  priority     : high
+  writing      : Results/baseline.json
+
+loaded 195 polygon cases and 2 offset cases
+
+boolean ops (Polygons.txt, all cases)                      new     17.44 ms /    7.82 MB   ref     23.64 ms /   16.33 MB   speedup  1.36x  alloc 0.479x  MISMATCH
+union: add subject paths only (ingestion)                  new      0.07 ms /    0.30 MB   ref      0.08 ms /    0.45 MB   speedup  1.11x  alloc 0.661x  OK
+union of every subject path (Paths64)                      new    165.22 ms /   12.54 MB   ref    356.01 ms /   32.68 MB   speedup  2.15x  alloc 0.384x  MISMATCH
+union of the same paths moved apart (no intersections)     new      4.46 ms /    1.77 MB   ref      5.61 ms /    4.15 MB   speedup  1.26x  alloc 0.427x  MISMATCH
+offsets (Offsets.txt, delta = 1, Round/Polygon)            new      1.19 ms /    0.48 MB   ref      1.34 ms /    2.60 MB   speedup  1.12x  alloc 0.187x  MISMATCH
+offsets (Offsets.txt, delta = 27, Miter/Square)            new      3.08 ms /    0.46 MB   ref      2.90 ms /    1.07 MB   speedup  0.94x  alloc 0.432x  OK
+rect clip (off all subjects into 100,100,700,500)          new      0.43 ms /    0.38 MB   ref      0.57 ms /    0.62 MB   speedup  1.32x  alloc 0.610x  OK
+rect clip lines (off all subjects into 100,100,700,500)    new      0.27 ms /    0.40 MB   ref      0.34 ms /    0.60 MB   speedup  1.27x  alloc 0.670x  OK
+simplify paths (all subjects, eps = 0.5)                   new      0.06 ms /    0.17 MB   ref      0.06 ms /    0.21 MB   speedup  0.94x  alloc 0.776x  OK
+triangulate 2000 vertex polygon                            new      0.95 ms /    0.97 MB   ref      1.30 ms /    1.09 MB   speedup  1.38x  alloc 0.888x  OK
+area (Paths64 of every subject+clip)                       new      0.02 ms /    0.09 MB   ref      0.02 ms /    0.09 MB   speedup  0.99x  alloc 1.000x  OK
+get bounds (Paths64 of every subject+clip)                 new      0.02 ms /    0.09 MB   ref      0.02 ms /    0.09 MB   speedup  1.03x  alloc 1.000x  OK
+point in polygon (200k probes)                             new    710.77 ms /    0.09 MB   ref   1026.17 ms /    0.09 MB   speedup  1.44x  alloc 1.000x  OK
+scale round trip (Paths64 -> PathsD -> Paths64, x1000)     new      0.05 ms /    0.25 MB   ref      0.06 ms /    0.25 MB   speedup  1.22x  alloc 1.001x  OK
+offset: every subject path as its own group                new     15.54 ms /    3.57 MB   ref     18.30 ms /   12.75 MB   speedup  1.18x  alloc 0.280x  MISMATCH
+rect clip: every subject path separately                   new      0.48 ms /    0.43 MB   ref      0.64 ms /    0.66 MB   speedup  1.33x  alloc 0.644x  OK
+per-case differences vs upstream: boolean 36/195, offsets 2/2
+
+### boolean ops (Polygons.txt, all cases)
+
+| implementation | time (ms) | allocated (MB) | result |
+|---|---:|---:|---|
+| Clipper2Sharp (new) | 17.44 | 7.82 | 16560 paths / area 6223511636 |
+| Clipper2 (upstream C#) | 23.64 | 16.33 | 16559 paths / area 6223511774 |
+
+speed-up **1.36x**, allocation **0.479x** of the reference, results **DIFFERENT**
+
+
+### union: add subject paths only (ingestion)
+
+| implementation | time (ms) | allocated (MB) | result |
+|---|---:|---:|---|
+| Clipper2Sharp (new) | 0.07 | 0.30 | 0 paths / area 0 |
+| Clipper2 (upstream C#) | 0.08 | 0.45 | 0 paths / area 0 |
+
+speed-up **1.11x**, allocation **0.661x** of the reference, results **identical**
+
+
+### union of every subject path (Paths64)
+
+| implementation | time (ms) | allocated (MB) | result |
+|---|---:|---:|---|
+| Clipper2Sharp (new) | 165.22 | 12.54 | 6075 paths / area 34874743561 |
+| Clipper2 (upstream C#) | 356.01 | 32.68 | 6048 paths / area 34874743623 |
+
+speed-up **2.15x**, allocation **0.384x** of the reference, results **DIFFERENT**
+
+
+### union of the same paths moved apart (no intersections)
+
+| implementation | time (ms) | allocated (MB) | result |
+|---|---:|---:|---|
+| Clipper2Sharp (new) | 4.46 | 1.77 | 2280 paths / area 34934172658 |
+| Clipper2 (upstream C#) | 5.61 | 4.15 | 2274 paths / area 34934172584 |
+
+speed-up **1.26x**, allocation **0.427x** of the reference, results **DIFFERENT**
+
+
+### offsets (Offsets.txt, delta = 1, Round/Polygon)
+
+| implementation | time (ms) | allocated (MB) | result |
+|---|---:|---:|---|
+| Clipper2Sharp (new) | 1.19 | 0.48 | 6 paths / area -172785 |
+| Clipper2 (upstream C#) | 1.34 | 2.60 | 5 paths / area -173333 |
+
+speed-up **1.12x**, allocation **0.187x** of the reference, results **DIFFERENT**
+
+
+### offsets (Offsets.txt, delta = 27, Miter/Square)
+
+| implementation | time (ms) | allocated (MB) | result |
+|---|---:|---:|---|
+| Clipper2Sharp (new) | 3.08 | 0.46 | 3 paths / area -286295 |
+| Clipper2 (upstream C#) | 2.90 | 1.07 | 3 paths / area -286295 |
+
+speed-up **0.94x**, allocation **0.432x** of the reference, results **identical**
+
+
+### rect clip (off all subjects into 100,100,700,500)
+
+| implementation | time (ms) | allocated (MB) | result |
+|---|---:|---:|---|
+| Clipper2Sharp (new) | 0.43 | 0.38 | 327 paths / area 1551666 |
+| Clipper2 (upstream C#) | 0.57 | 0.62 | 327 paths / area 1551666 |
+
+speed-up **1.32x**, allocation **0.610x** of the reference, results **identical**
+
+
+### rect clip lines (off all subjects into 100,100,700,500)
+
+| implementation | time (ms) | allocated (MB) | result |
+|---|---:|---:|---|
+| Clipper2Sharp (new) | 0.27 | 0.40 | 1033 paths / area 1113240 |
+| Clipper2 (upstream C#) | 0.34 | 0.60 | 1033 paths / area 1113240 |
+
+speed-up **1.27x**, allocation **0.670x** of the reference, results **identical**
+
+
+### simplify paths (all subjects, eps = 0.5)
+
+| implementation | time (ms) | allocated (MB) | result |
+|---|---:|---:|---|
+| Clipper2Sharp (new) | 0.06 | 0.17 | 249 paths / area 34870839030 |
+| Clipper2 (upstream C#) | 0.06 | 0.21 | 249 paths / area 34870839030 |
+
+speed-up **0.94x**, allocation **0.776x** of the reference, results **identical**
+
+
+### triangulate 2000 vertex polygon
+
+| implementation | time (ms) | allocated (MB) | result |
+|---|---:|---:|---|
+| Clipper2Sharp (new) | 0.95 | 0.97 | 1730 paths / area 31415501224 |
+| Clipper2 (upstream C#) | 1.30 | 1.09 | 1730 paths / area 31415501224 |
+
+speed-up **1.38x**, allocation **0.888x** of the reference, results **identical**
+
+
+### area (Paths64 of every subject+clip)
+
+| implementation | time (ms) | allocated (MB) | result |
+|---|---:|---:|---|
+| Clipper2Sharp (new) | 0.02 | 0.09 | 249 paths / area 34870839034 |
+| Clipper2 (upstream C#) | 0.02 | 0.09 | 249 paths / area 34870839034 |
+
+speed-up **0.99x**, allocation **1.000x** of the reference, results **identical**
+
+
+### get bounds (Paths64 of every subject+clip)
+
+| implementation | time (ms) | allocated (MB) | result |
+|---|---:|---:|---|
+| Clipper2Sharp (new) | 0.02 | 0.09 | 6769764 paths / area 0 |
+| Clipper2 (upstream C#) | 0.02 | 0.09 | 6769764 paths / area 0 |
+
+speed-up **1.03x**, allocation **1.000x** of the reference, results **identical**
+
+
+### point in polygon (200k probes)
+
+| implementation | time (ms) | allocated (MB) | result |
+|---|---:|---:|---|
+| Clipper2Sharp (new) | 710.77 | 0.09 | 787 paths / area 0 |
+| Clipper2 (upstream C#) | 1026.17 | 0.09 | 787 paths / area 0 |
+
+speed-up **1.44x**, allocation **1.000x** of the reference, results **identical**
+
+
+### scale round trip (Paths64 -> PathsD -> Paths64, x1000)
+
+| implementation | time (ms) | allocated (MB) | result |
+|---|---:|---:|---|
+| Clipper2Sharp (new) | 0.05 | 0.25 | 249 paths / area 34870839034 |
+| Clipper2 (upstream C#) | 0.06 | 0.25 | 249 paths / area 34870839034 |
+
+speed-up **1.22x**, allocation **1.001x** of the reference, results **identical**
+
+
+### offset: every subject path as its own group
+
+| implementation | time (ms) | allocated (MB) | result |
+|---|---:|---:|---|
+| Clipper2Sharp (new) | 15.54 | 3.57 | 1389 paths / area 34907039252 |
+| Clipper2 (upstream C#) | 18.30 | 12.75 | 1389 paths / area 34907039256 |
+
+speed-up **1.18x**, allocation **0.280x** of the reference, results **DIFFERENT**
+
+
+### rect clip: every subject path separately
+
+| implementation | time (ms) | allocated (MB) | result |
+|---|---:|---:|---|
+| Clipper2Sharp (new) | 0.48 | 0.43 | 327 paths / area 1551661 |
+| Clipper2 (upstream C#) | 0.64 | 0.66 | 327 paths / area 1551661 |
+
+speed-up **1.33x**, allocation **0.644x** of the reference, results **identical**
+
+
+### Differences against the upstream C# 2.0.0 port
+
+- boolean cases: 36 of 195 differ
+- offset cases : 2 of 2 differ
+
+```
+  boolean case 120 (INTERSECTION/EVENODD): new 381 paths / area 337752 vs ref 381 paths / area 337759
+  boolean case 122 (INTERSECTION/EVENODD): new 337 paths / area 321714 vs ref 337 paths / area 321705
+  boolean case 123 (INTERSECTION/EVENODD): new 377 paths / area 367528 vs ref 377 paths / area 367538
+  boolean case 127 (INTERSECTION/EVENODD): new 375 paths / area 345651 vs ref 375 paths / area 345656
+  boolean case 128 (INTERSECTION/EVENODD): new 418 paths / area 386173 vs ref 418 paths / area 386157
+  boolean case 129 (INTERSECTION/EVENODD): new 364 paths / area 294497 vs ref 364 paths / area 294501
+  boolean case 130 (INTERSECTION/EVENODD): new 420 paths / area 330359 vs ref 420 paths / area 330369
+  boolean case 135 (INTERSECTION/EVENODD): new 333 paths / area 350668 vs ref 333 paths / area 350664
+  boolean case 136 (INTERSECTION/EVENODD): new 393 paths / area 354512 vs ref 393 paths / area 354490
+  boolean case 138 (INTERSECTION/EVENODD): new 406 paths / area 365239 vs ref 406 paths / area 365246
+  boolean case 139 (INTERSECTION/EVENODD): new 388 paths / area 384851 vs ref 388 paths / area 384868
+  boolean case 140 (INTERSECTION/EVENODD): new 414 paths / area 372581 vs ref 414 paths / area 372573
+  offset case 1: new 4 paths / area -15019 vs ref 3 paths / area -15080
+  offset case 2: new 2 paths / area -157766 vs ref 2 paths / area -158253
+```
+
+
+report written to E:\Learning\AI\Clipper2Sharp\benchmark\Clipper2.Benchmark\bin\Release\net10.0\benchmark-report-20260925-135227.md
+
+baseline written to Results/baseline.json (16 workloads)

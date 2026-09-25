@@ -89,53 +89,45 @@ namespace Clipper2Lib
     }
   }
 
-  /// <summary>A pool of reusable Vertex objects.</summary>
-  internal sealed class VertexPoolList : PooledList<Vertex>
+  /// <summary>
+  /// The input vertices of an engine (or of a ReuseableDataContainer64): one
+  /// growable array of Vertex structs, addressed by index.
+  /// </summary>
+  internal sealed class VertexStore
   {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vertex Add(Point64 pt, VertexFlags flags, Vertex? prev)
-    {
-      EnsureCapacity();
-      Vertex?[] items = _items!;
-      Vertex? v = items[_size];
-      if (v == null)
-      {
-        v = new Vertex();
-        items[_size] = v;
-      }
-      v.pt = pt;
-      v.flags = flags;
-      v.prev = prev;
-      v.next = null;
-      _size++;
-      return v;
-    }
-  }
+    public Vertex[] items = Array.Empty<Vertex>();
+    public int count;
 
-  /// <summary>A pool of reusable OutPt objects.</summary>
-  internal sealed class OutPtPoolList : PooledList<OutPt>
-  {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public OutPt Add(Point64 pt, OutRec outrec)
+    public int Capacity => items.Length;
+
+    public void EnsureCapacity(int required)
     {
-      EnsureCapacity();
-      OutPt?[] items = _items!;
-      OutPt? op = items[_size];
-      if (op == null)
-      {
-        op = new OutPt(pt, outrec);
-        items[_size] = op;
-      }
-      else
-      {
-        op.pt = pt;
-        op.outrec = outrec;
-        op.next = op;
-        op.prev = op;
-        op.horz = null;
-      }
-      _size++;
-      return op;
+      if (required <= items.Length) return;
+      int newLen = Math.Max(Math.Max(required, items.Length * 2), 64);
+      Array.Resize(ref items, newLen);
+    }
+
+    /// <summary>Appends a vertex (the capacity must have been ensured).</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int Add(Point64 pt, int prev)
+    {
+      int i = count++;
+      ref Vertex v = ref items[i];
+      v.pt = pt;
+      v.flags = VertexFlags.Empty;
+      v.prev = prev;
+      v.next = -1;
+      return i;
+    }
+
+    /// <summary>Forgets the vertices (keeps the storage for the next paths).</summary>
+    public void Clear() { count = 0; }
+
+    /// <summary>Forgets the vertices and drops the storage.</summary>
+    public void Release()
+    {
+      items = Array.Empty<Vertex>();
+      count = 0;
     }
   }
 
@@ -160,14 +152,14 @@ namespace Clipper2Lib
         // for every use (this is what keeps previously returned results intact).
         or.idx = 0;
         or.owner = null;
-        or.frontEdge = null;
-        or.backEdge = null;
-        or.pts = null;
+        or.frontEdge = -1;
+        or.backEdge = -1;
+        or.pts = -1;
         or.polypath = null;
         or.splits = null;
         or.recursiveSplit = null;
         or.bounds = new Rect64();
-        or.path = new Path64();
+        or.path = null;
         or.isOpen = false;
       }
       _size++;
@@ -184,17 +176,15 @@ namespace Clipper2Lib
         OutRec? or = items[i];
         if (or == null) break;
         or.owner = null;
-        or.frontEdge = null;
-        or.backEdge = null;
-        or.pts = null;
+        or.frontEdge = -1;
+        or.backEdge = -1;
+        or.pts = -1;
         or.polypath = null;
         or.splits = null;
         or.recursiveSplit = null;
-        or.path = EmptyPath;
+        or.path = null;
       }
       _size = 0;
     }
-
-    private static readonly Path64 EmptyPath = new Path64(0);
   }
 }
