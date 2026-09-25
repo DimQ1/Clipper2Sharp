@@ -160,6 +160,7 @@ jobs:
           done
 
       - name: Upload the package
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nupkg-${{ steps.version.outputs.version }}
