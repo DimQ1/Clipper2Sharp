@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Clipper2.WebDemo</RootNamespace>
+    <AssemblyName>Clipper2.WebDemo</AssemblyName>
+    <!-- the interactive demo behind https://dimq1.github.io/Clipper2Sharp/ -->
+    <Description>The interactive Clipper2Sharp demo: drag the shapes, run the operations and watch the timings.</Description>
+
+    <!-- -p:WasmAot=true builds the AOT flavour (needs the wasm-tools workload).
+         The page reports which flavour it is running, because the interpreted
+         build is several times slower than the AOT one. -->
+    <WasmAot Condition="'$(WasmAot)' == ''">false</WasmAot>
+    <RunAOTCompilation Condition="'$(WasmAot)' == 'true'">true</RunAOTCompilation>
+    <WasmStripILAfterAOT Condition="'$(WasmAot)' == 'true'">true</WasmStripILAfterAOT>
+    <DefineConstants Condition="'$(WasmAot)' == 'true'">$(DefineConstants);CLIPPER2_WASM_AOT</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.12" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.12" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Clipper2Lib\Clipper2Lib.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- the demo measures the library, so keep the whole assembly while trimming -->
+    <TrimmerRootAssembly Include="Clipper2Lib" />
+  </ItemGroup>
+
+</Project>

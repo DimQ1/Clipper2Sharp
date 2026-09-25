@@ -1,0 +1,145 @@
+@using System.Globalization
+
+<div class="panel">
+  <h2>@T("speed")</h2>
+  <p class="hint">@T("speedIntro")</p>
+
+  <div class="row">
+    <button class="primary" disabled="@_running" @onclick="RunAsync">
+      @(_running ? T("running") : T("runScaling"))
+    </button>
+    @if (_rows.Length > 0)
+    {
+      <span class="badge">@_headline</span>
+    }
+  </div>
+
+  @if (_rows.Length > 0)
+  {
+    <svg class="chart" viewBox="0 0 720 300" preserveAspectRatio="xMidYMid meet">
+      @* axes *@
+      <line x1="@Left" y1="@Bottom" x2="@(Right)" y2="@Bottom" stroke="#3a4654" stroke-width="2" />
+      <line x1="@Left" y1="@Top" x2="@Left" y2="@Bottom" stroke="#3a4654" stroke-width="2" />
+
+      @for (int i = 0; i <= 4; i++)
+      {
+        <g>
+          @{
+            double value = _maxMs * i / 4.0;
+            double y = Bottom - (Bottom - Top) * i / 4.0;
+          }
+          <line x1="@Left" y1="@Svg.Number(y)" x2="@Right" y2="@Svg.Number(y)"
+                stroke="#1d2733" stroke-width="1" />
+          <text class="axis" x="@(Left - 8)" y="@Svg.Number(y + 4)" text-anchor="end">
+            @Svg.Number(value, "0.#")
+          </text>
+        </g>
+      }
+
+      <polyline fill="none" stroke="#3cdc96" stroke-width="3" points="@Svg.Polyline(_points)" />
+
+      @for (int i = 0; i < _rows.Length; i++)
+      {
+        <g>
+          @{
+            double x = X(i);
+            double y = Y(_rows[i].Milliseconds);
+          }
+          <circle cx="@Svg.Number(x)" cy="@Svg.Number(y)" r="5" fill="#3cdc96" />
+          <text class="axis" x="@Svg.Number(x)" y="@(Bottom + 22)" text-anchor="middle">@_rows[i].Shapes</text>
+          <text class="value" x="@Svg.Number(x)" y="@Svg.Number(y - 12)" text-anchor="middle">
+            @Svg.Number(_rows[i].Milliseconds, "0.##")
+          </text>
+        </g>
+      }
+
+      <text class="axis" x="@((Left + Right) / 2)" y="@(Bottom + 46)" text-anchor="middle">@T("workload")</text>
+      <text class="axis" x="18" y="@((Top + Bottom) / 2)" text-anchor="middle"
+            transform="rotate(-90 18 @((Top + Bottom) / 2))">@T("chart")</text>
+    </svg>
+
+    <table>
+      <thead>
+        <tr>
+          <th>@T("workload")</th>
+          <th>@T("vertices")</th>
+          <th>@T("time")</th>
+          <th>@T("allocatedTotal")</th>
+          <th>@T("resultPaths")</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (BenchRow row in _rows)
+        {
+          <tr>
+            <td>@row.Shapes</td>
+            <td>@(row.Vertices.ToString("N0", CultureInfo.InvariantCulture))</td>
+            <td>@Format(row.Milliseconds, "0.###") ms</td>
+            <td>@(row.AllocationMeasured ? Format(row.AllocatedMB, "0.00") + " MB" : T("notMeasured"))</td>
+            <td>@row.ResultPaths</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  <p class="hint">@T("footnote")</p>
+  @if (_rows.Any(r => !r.AllocationMeasured))
+  {
+    <p class="hint">@T("allocUnavailable")</p>
+  }
+</div>
+
+@code {
+  [Parameter, EditorRequired] public string Lang { get; set; } = Demo.Lang.English;
+  [Parameter] public int VerticesPerShape { get; set; } = Bench.DefaultVerticesPerShape;
+
+  private BenchRow[] _rows = Array.Empty<BenchRow>();
+  private bool _running;
+  private double _maxMs = 1;
+  private string _headline = string.Empty;
+  private IReadOnlyList<(double X, double Y)> _points = Array.Empty<(double, double)>();
+
+  private const double Left = 64;
+  private const double Right = 700;
+  private const double Top = 24;
+  private const double Bottom = 244;
+
+  private string T(string key) => Demo.Lang.Get(Lang, key);
+
+  private static string Format(double value, string format) => Svg.Number(value, format);
+
+  private double X(int index) =>
+    _rows.Length <= 1 ? Left : Left + (Right - Left) * index / (_rows.Length - 1.0);
+
+  private double Y(double ms) => Bottom - (Bottom - Top) * (ms / Math.Max(_maxMs, 1e-6));
+
+  private async Task RunAsync()
+  {
+    _running = true;
+    // let the button switch to "measuring" before the (synchronous, single-threaded)
+    // measurement takes over the browser's only thread
+    await Task.Yield();
+
+    BenchRow[] rows = Bench.UnionScaling(Bench.DefaultCounts, VerticesPerShape);
+    _rows = rows;
+    _maxMs = 1;
+    foreach (BenchRow row in rows) _maxMs = Math.Max(_maxMs, row.Milliseconds);
+    _points = BuildPoints(rows);
+    BenchRow last = rows[^1];
+    string allocation = last.AllocationMeasured
+      ? Svg.Number(last.AllocatedMB, "0.00") + " MB, "
+      : string.Empty;
+    _headline = $"{last.Shapes} × {VerticesPerShape} " + (Lang == Demo.Lang.Russian ? "вершин" : "vertices") +
+                $": {Svg.Number(last.Milliseconds, "0.###")} ms, {allocation}" +
+                $"{last.ResultPaths} paths";
+    _running = false;
+  }
+
+  private IReadOnlyList<(double X, double Y)> BuildPoints(BenchRow[] rows)
+  {
+    List<(double, double)> points = new(rows.Length);
+    for (int i = 0; i < rows.Length; i++) points.Add((X(i), Y(rows[i].Milliseconds)));
+    return points;
+  }
+}

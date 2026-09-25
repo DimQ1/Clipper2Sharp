@@ -1,0 +1,183 @@
+@using System.Globalization
+@inject IJSRuntime JS
+
+@* The drawing surface. Everything is an SVG element, so the geometry the library
+   works with is exactly what the browser shows; the only JavaScript involved maps
+   a pointer position onto the viewBox and captures the pointer during a drag. *@
+<svg class="canvas" viewBox="0 0 @Shapes.WorldWidth @Shapes.WorldHeight"
+     preserveAspectRatio="xMidYMid meet" @ref="_svg"
+     @onpointerdown="OnPointerDown" @onpointermove="OnPointerMove"
+     @onpointerup="OnPointerUp" @onpointercancel="OnPointerUp">
+
+  <defs>
+    <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+      <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#1d2733" stroke-width="1" />
+    </pattern>
+  </defs>
+  <rect x="0" y="0" width="@Shapes.WorldWidth" height="@Shapes.WorldHeight" fill="url(#grid)" />
+
+  @if (Outcome?.Rect is Rect64 rect && !rect.IsEmpty())
+  {
+    <rect x="@rect.left" y="@rect.top" width="@rect.Width" height="@rect.Height"
+          fill="none" stroke="#7c8b9c" stroke-width="3" stroke-dasharray="14 10" />
+  }
+
+  @if (ShowInput)
+  {
+    <path d="@Svg.PathsData(Subject)" fill="rgba(64, 139, 255, 0.22)" stroke="#408bff" stroke-width="3"
+          fill-rule="evenodd" />
+    <path d="@Svg.PathsData(Clip)" fill="rgba(255, 159, 64, 0.22)" stroke="#ff9f40" stroke-width="3"
+          fill-rule="evenodd" />
+  }
+
+  @if (Outcome?.Triangles is { Count: > 0 } triangles)
+  {
+    @foreach (Path64 triangle in triangles)
+    {
+      <path d="@Svg.PathData(triangle)" fill="rgba(60, 220, 150, 0.20)" stroke="#3cdc96" stroke-width="1.5" />
+    }
+  }
+  else if (Outcome is { } outcome && outcome.Result.Count > 0)
+  {
+    <path d="@Svg.PathsData(outcome.Result)" fill="rgba(60, 220, 150, 0.35)" stroke="#2fd08a" stroke-width="3"
+          fill-rule="evenodd" />
+  }
+
+  @if (Outcome?.Probes is { Count: > 0 } probes)
+  {
+    @foreach (Probe probe in probes)
+    {
+      <circle cx="@probe.X" cy="@probe.Y" r="4.5"
+              fill="@(probe.Inside ? "#3cdc96" : "#3a4654")" />
+    }
+  }
+
+  @if (ShowHandles)
+  {
+    @for (int p = 0; p < Subject.Count; p++)
+    {
+      int pathIndex = p;
+      @for (int v = 0; v < Subject[pathIndex].Count; v++)
+      {
+        int vertexIndex = v;
+        Point64 point = Subject[pathIndex][vertexIndex];
+        <circle class="handle" cx="@point.X" cy="@point.Y" r="8"
+                @onpointerdown="(PointerEventArgs e) => StartVertexDrag(pathIndex, vertexIndex, e)" />
+      }
+    }
+  }
+</svg>
+
+@code {
+  [Parameter, EditorRequired] public Paths64 Subject { get; set; } = new();
+  [Parameter, EditorRequired] public Paths64 Clip { get; set; } = new();
+  [Parameter] public OpOutcome? Outcome { get; set; }
+  [Parameter] public bool ShowInput { get; set; } = true;
+  [Parameter] public EventCallback<VertexMove> OnVertexMoved { get; set; }
+  [Parameter] public EventCallback<ClipMove> OnClipMoved { get; set; }
+  [Parameter] public EventCallback OnDragStarted { get; set; }
+  [Parameter] public EventCallback OnDragFinished { get; set; }
+
+  private ElementReference _svg;
+  private DragMode _mode = DragMode.None;
+  private int _dragPath = -1;
+  private int _dragVertex = -1;
+  private double _lastX;
+  private double _lastY;
+  private long _dx;
+  private long _dy;
+
+  private bool ShowHandles => _mode != DragMode.None || VertexCount(Subject) <= 256;
+
+  private enum DragMode { None, Vertex, Clip }
+
+  private static long VertexCount(Paths64 paths)
+  {
+    long n = 0;
+    foreach (Path64 path in paths) n += path.Count;
+    return n;
+  }
+
+  private async Task OnPointerDown(PointerEventArgs e)
+  {
+    (double x, double y) = await ToWorld(e);
+    _lastX = x;
+    _lastY = y;
+    _dx = 0;
+    _dy = 0;
+
+    // a handle press is handled by the handle itself; anywhere else moves the clip
+    if (_mode == DragMode.None)
+    {
+      _mode = DragMode.Clip;
+      await OnDragStarted.InvokeAsync();
+      await JS.InvokeVoidAsync("clipper2demo.capture", _svg, e.PointerId);
+    }
+  }
+
+  private async Task StartVertexDrag(int pathIndex, int vertexIndex, PointerEventArgs e)
+  {
+    _mode = DragMode.Vertex;
+    _dragPath = pathIndex;
+    _dragVertex = vertexIndex;
+    await OnDragStarted.InvokeAsync();
+    await JS.InvokeVoidAsync("clipper2demo.capture", _svg, e.PointerId);
+  }
+
+  private async Task OnPointerMove(PointerEventArgs e)
+  {
+    if (_mode == DragMode.None) return;
+    (double x, double y) = await ToWorld(e);
+    long dx = (long) Math.Round(x - _lastX);
+    long dy = (long) Math.Round(y - _lastY);
+    _lastX = x;
+    _lastY = y;
+
+    if (_mode == DragMode.Clip)
+    {
+      _dx += dx;
+      _dy += dy;
+      // report the running delta so the page can move the shape without
+      // re-running the operation on every mouse move
+      await OnClipMoved.InvokeAsync(new ClipMove(_dx, _dy));
+    }
+    else if (_mode == DragMode.Vertex && _dragPath >= 0 && _dragPath < Subject.Count &&
+             _dragVertex >= 0 && _dragVertex < Subject[_dragPath].Count)
+    {
+      Point64 current = Subject[_dragPath][_dragVertex];
+      await OnVertexMoved.InvokeAsync(
+        new VertexMove(_dragPath, _dragVertex, current.X + dx, current.Y + dy));
+    }
+  }
+
+  private async Task OnPointerUp(PointerEventArgs e)
+  {
+    if (_mode == DragMode.None) return;
+    _mode = DragMode.None;
+    _dragPath = -1;
+    _dragVertex = -1;
+    _dx = 0;
+    _dy = 0;
+    try
+    {
+      await JS.InvokeVoidAsync("clipper2demo.release", _svg, e.PointerId);
+    }
+    catch (JSException)
+    {
+      // the pointer was already released - nothing to do
+    }
+    await OnDragFinished.InvokeAsync();
+  }
+
+  private async Task<(double X, double Y)> ToWorld(PointerEventArgs e)
+  {
+    Viewport point = await JS.InvokeAsync<Viewport>("clipper2demo.toWorld", _svg, e.ClientX, e.ClientY);
+    return (point.X, point.Y);
+  }
+
+  private sealed class Viewport
+  {
+    public double X { get; set; }
+    public double Y { get; set; }
+  }
+}

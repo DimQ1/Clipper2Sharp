@@ -26,6 +26,7 @@
     <Project Path="examples/RectClipDemo/RectClipDemo.csproj" />
     <Project Path="examples/TriangulationDemo/TriangulationDemo.csproj" />
     <Project Path="examples/UsingZDemo/UsingZDemo.csproj" />
+    <Project Path="examples/Clipper2.WebDemo/Clipper2.WebDemo.csproj" />
   </Folder>
 
   <Folder Name="/tests/">

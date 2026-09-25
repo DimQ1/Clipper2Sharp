@@ -1,0 +1,10 @@
+@* A titled block of the demo page. *@
+<section class="panel">
+  <h2>@Title</h2>
+  @ChildContent
+</section>
+
+@code {
+  [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+  [Parameter] public RenderFragment? ChildContent { get; set; }
+}

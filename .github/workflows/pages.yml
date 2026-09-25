@@ -1,0 +1,91 @@
+name: Demo (GitHub Pages)
+
+# Publishes the interactive demo to https://dimq1.github.io/Clipper2Sharp/ .
+# The app is a Blazor WebAssembly build, so the page runs the real port in the
+# visitor's browser - the same code the NuGet package contains.
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'examples/Clipper2.WebDemo/**'
+      - 'src/Clipper2Lib/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DEMO_PROJECT: examples/Clipper2.WebDemo/Clipper2.WebDemo.csproj
+  # the site is served from a sub path of the domain
+  SITE_PATH: /Clipper2Sharp/
+
+jobs:
+  build:
+    name: build the demo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            Directory.Build.props
+
+      - name: Install the wasm-tools workload (for the AOT build)
+        continue-on-error: true
+        run: dotnet workload install wasm-tools
+
+      - name: Publish
+        run: |
+          set -euo pipefail
+          aot=""
+          if dotnet workload list | grep -qi wasm-tools; then
+            aot="-p:WasmAot=true"
+            echo "wasm-tools is available: publishing the AOT build"
+          else
+            echo "wasm-tools is not available: publishing the interpreted build"
+          fi
+          dotnet publish "$DEMO_PROJECT" -c Release -o build $aot
+
+          # the page is served from /Clipper2Sharp/, and the badge in the header
+          # reports which flavour was built, so both are patched into the output
+          sed -i "s|<base href=\"/\" />|<base href=\"$SITE_PATH\" />|" build/wwwroot/index.html
+          grep -q "base href=\"$SITE_PATH\"" build/wwwroot/index.html
+          touch build/wwwroot/.nojekyll
+          ls -l build/wwwroot | head -20
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/wwwroot
+
+  deploy:
+    name: deploy to Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

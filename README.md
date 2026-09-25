@@ -13,6 +13,9 @@ C# 2.0.0 code.
 * Target framework: **.NET 10**
 * Solution file: **`Clipper2Sharp.slnx`** (the XML solution format)
 * Pure C# — no P/Invoke, no native dependency.
+* **Live demo: <https://dimq1.github.io/Clipper2Sharp/>** — the port running as
+  WebAssembly in the browser: drag the shapes, run every operation, play the
+  animations and watch the timings. Same code as the package.
 
 ## Layout
 
@@ -83,6 +86,10 @@ workflows cover it:
   `.nupkg`, and a scratch project that consumes the package and calls it;
 * `publish.yml` — on a `v*` tag: the same gates, then push to nuget.org, using
   trusted publishing (OIDC, keyless) or a `NUGET_API_KEY` secret.
+* `pages.yml` — on a change to the demo or the library: build
+  `examples/Clipper2.WebDemo` (Blazor WebAssembly, AOT when the `wasm-tools`
+  workload is available, interpreted otherwise) and deploy it to GitHub Pages,
+  which is what the link on the package page points at.
 
 Both build `Clipper2Sharp.Ci.slnx`, the full solution minus the A/B benchmark, which
 needs the upstream C# checkout. The one-time nuget.org setup, the release steps and

@@ -1,0 +1,539 @@
+@using System.Globalization
+@using System.Diagnostics
+
+<header>
+  <div class="headline">
+    <h1>@T("title")</h1>
+    <button class="lang" @onclick="ToggleLang" title="switch language">@Demo.Lang.Badge(_lang)</button>
+  </div>
+  <p class="subtitle">@T("subtitle")</p>
+  <div class="row badges">
+    <span class="badge">@BuildMode</span>
+    <span class="badge">@T("framework") @Environment.Version</span>
+    <span class="badge">@T("singleThread")</span>
+    <a class="badge link" href="https://www.nuget.org/packages/Clipper2Sharp" target="_blank" rel="noreferrer">@T("nugget")</a>
+    <a class="badge link" href="https://github.com/DimQ1/Clipper2Sharp" target="_blank" rel="noreferrer">@T("sources")</a>
+  </div>
+</header>
+
+<Section Title="@T("animTitle")">
+  <p class="hint">@T("animIntro")</p>
+  <div class="row">
+    @foreach (Scenario scenario in Scenarios.All)
+    {
+      <button class="@($"op{(_scenario == scenario ? " active" : string.Empty)}")"
+              disabled="@_playing" @onclick="() => StartScenario(scenario)">
+        @ScenLabel(scenario)
+      </button>
+    }
+    <button class="primary" @onclick="TogglePlay">@(_playing ? T("animPause") : T("animPlay"))</button>
+    <label>
+      @T("animSpeed") @Svg.Number(_speedPercent, "0")%
+      <input type="range" min="20" max="200" step="10" @bind="_speedPercent" />
+    </label>
+  </div>
+  <p class="hint">@ScenWhy(_scenario)</p>
+  <div class="row metrics">
+    <div class="metric"><span>@T("animFrame")</span><b>@Svg.Number(_lastFrameMs, "0.0") ms</b></div>
+    <div class="metric"><span>@T("animFps")</span><b>@Svg.Number(_fps, "0")</b></div>
+    <div class="metric"><span>@T("operation")</span><b>@OpLabel(_op)</b></div>
+    <div class="metric"><span>@T("paths")</span><b>@(_outcome?.Result.Count ?? 0)</b></div>
+  </div>
+  @if (!_playing)
+  {
+    <p class="hint">@T("scenarioHint")</p>
+  }
+</Section>
+
+<Section Title="@T("shapes")">
+  <div class="row">
+    <label>
+      @T("subject")
+      <select @bind="_subjectPreset" @bind:after="Rebuild">
+        @foreach (SubjectPreset preset in Enum.GetValues<SubjectPreset>())
+        {
+          <option value="@preset">@SubjectLabel(preset)</option>
+        }
+      </select>
+    </label>
+    <label>
+      @T("clip")
+      <select @bind="_clipPreset" @bind:after="Rebuild">
+        @foreach (ClipPreset preset in Enum.GetValues<ClipPreset>())
+        {
+          <option value="@preset">@preset</option>
+        }
+      </select>
+    </label>
+    <label>
+      @T("fillRule")
+      <select @bind="_fillRule">
+        @foreach (FillRule rule in Enum.GetValues<FillRule>())
+        {
+          <option value="@rule">@rule</option>
+        }
+      </select>
+    </label>
+    <button @onclick="Randomize">@T("randomize")</button>
+    <button @onclick="Reset">@T("reset")</button>
+    <label class="check">
+      <input type="checkbox" @bind="_showInput" />
+      @T("showInput")
+    </label>
+  </div>
+</Section>
+
+<Section Title="@T("operation")">
+  <div class="row ops">
+    @foreach (OpKind op in Enum.GetValues<OpKind>())
+    {
+      <button class="@($"op{(_op == op ? " active" : string.Empty)}")" @onclick="() => Select(op)">
+        @OpLabel(op)
+      </button>
+    }
+  </div>
+  <p class="hint">@OpInfo(_op)</p>
+
+  <div class="row">
+    @if (_op == OpKind.Offset)
+    {
+      <label>
+        @T("delta") @Svg.Number(_delta, "0")
+        <input type="range" min="-60" max="120" step="1" @bind="_delta" @bind:after="Measure" />
+      </label>
+      <label>
+        @T("join")
+        <select @bind="_join" @bind:after="Measure">
+          @foreach (JoinType join in Enum.GetValues<JoinType>())
+          {
+            <option value="@join">@join</option>
+          }
+        </select>
+      </label>
+      <label>
+        end
+        <select @bind="_end" @bind:after="Measure">
+          @foreach (EndType end in Enum.GetValues<EndType>())
+          {
+            <option value="@end">@end</option>
+          }
+        </select>
+      </label>
+    }
+    @if (_op == OpKind.Simplify)
+    {
+      <label>
+        @T("epsilon") @Svg.Number(_epsilon, "0.#")
+        <input type="range" min="1" max="40" step="1" @bind="_epsilon" @bind:after="Measure" />
+      </label>
+    }
+    <label>
+      @T("repetitions")
+      <select @bind="_repetitions" @bind:after="Measure">
+        <option value="1">1</option>
+        <option value="5">5</option>
+        <option value="20">20</option>
+        <option value="100">100</option>
+      </select>
+    </label>
+    <span class="hint">@T("dragHint")</span>
+  </div>
+</Section>
+
+<Section Title="@T("results")">
+  <ShapeCanvas Subject="@_subject" Clip="@_clip" Outcome="@_outcome"
+               ShowInput="@_showInput"
+               OnDragStarted="OnDragStarted"
+               OnVertexMoved="OnVertexMoved"
+               OnClipMoved="OnClipMoved"
+               OnDragFinished="OnDragFinished" />
+
+  @if (_outcome is { } outcome)
+  {
+    <div class="row metrics">
+      <div class="metric"><span>@T("time")</span><b>@Svg.Number(outcome.Milliseconds, "0.###") ms</b></div>
+      <div class="metric"><span>@T("allocation")</span><b>@AllocationText(outcome.AllocationMeasured, outcome.AllocatedBytesPerRun)</b></div>
+      <div class="metric"><span>@T("paths")</span><b>@outcome.Result.Count</b></div>
+      <div class="metric"><span>@T("points")</span><b>@outcome.ResultVertices.ToString("N0", CultureInfo.InvariantCulture)</b></div>
+      <div class="metric"><span>@T("area")</span><b>@Svg.Number(outcome.Area, "N0")</b></div>
+      <div class="metric"><span>@T("input")</span><b>@outcome.InputVertices.ToString("N0", CultureInfo.InvariantCulture) @T("vertices")</b></div>
+      <div class="metric"><span>runs</span><b>@outcome.Repetitions</b></div>
+    </div>
+
+    @if (!outcome.AllocationMeasured)
+    {
+      <p class="hint">@T("allocationNote")</p>
+    }
+
+    @if (outcome.Triangles is { Count: > 0 } triangles)
+    {
+      <p class="hint">@triangles.Count.ToString("N0", CultureInfo.InvariantCulture) @T("triangles")</p>
+    }
+    @if (outcome.Probes is { Count: > 0 } probes)
+    {
+      int inside = 0;
+      foreach (Probe probe in probes) if (probe.Inside) inside++;
+      <p class="hint">
+        @probes.Count.ToString("N0", CultureInfo.InvariantCulture) @T("probes"),
+        @inside.ToString("N0", CultureInfo.InvariantCulture) @T("inside")
+      </p>
+    }
+    @if (!string.IsNullOrEmpty(outcome.Note))
+    {
+      <p class="hint">@T("note"): @outcome.Note</p>
+    }
+    @if (outcome.Result.Count == 0 && outcome.Triangles == null && outcome.Probes == null)
+    {
+      <p class="hint">@T("noResult")</p>
+    }
+  }
+</Section>
+
+@if (_history.Count > 0)
+{
+  <Section Title="History">
+    <table>
+      <thead>
+        <tr>
+          <th>@T("operation")</th>
+          <th>@T("time")</th>
+          <th>@T("allocation")</th>
+          <th>@T("paths")</th>
+          <th>@T("input")</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (HistoryRow row in _history)
+        {
+          <tr>
+            <td>@OpLabel(row.Op)</td>
+            <td>@Svg.Number(row.Milliseconds, "0.###") ms</td>
+            <td>@AllocationText(row.AllocationMeasured, row.AllocatedBytes)</td>
+            <td>@row.Paths</td>
+            <td>@row.InputVertices.ToString("N0", CultureInfo.InvariantCulture)</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </Section>
+}
+
+<SpeedPanel Lang="@_lang" />
+
+<footer>
+  <span>Clipper2Sharp · <a href="https://github.com/DimQ1/Clipper2Sharp/blob/main/docs/porting-notes.md" target="_blank" rel="noreferrer">porting notes</a></span>
+  <span>@T("updated")@Shapes.WorldWidth×@Shapes.WorldHeight</span>
+</footer>
+
+@code {
+  private string _lang = Demo.Lang.English;
+  private Paths64 _subject = new();
+  private Paths64 _clip = new();
+  private Paths64 _clipAtDragStart = new();
+  private OpOutcome? _outcome;
+
+  private OpKind _op = OpKind.Union;
+  private FillRule _fillRule = FillRule.NonZero;
+  private JoinType _join = JoinType.Round;
+  private EndType _end = EndType.Polygon;
+  private double _delta = 25;
+  private double _epsilon = 6;
+  private int _repetitions = 5;
+  private bool _showInput = true;
+  private bool _dragging;
+  private bool _heavy;
+
+  private SubjectPreset _subjectPreset = SubjectPreset.Star;
+  private ClipPreset _clipPreset = ClipPreset.Blob;
+
+  private Scenario _scenario = Scenario.MovingClip;
+  private bool _playing;
+  private double _speedPercent = 100;
+  private double _lastFrameMs;
+  private double _fps;
+  private Paths64 _baseSubject = new();
+  private Paths64 _baseClip = new();
+  private Rect64? _rect;
+
+  private readonly List<HistoryRow> _history = new();
+
+  private enum SubjectPreset { Star, Blob, Rect, Grid, ManyBlobs }
+  private enum ClipPreset { Blob, Circle, Star, Rect }
+
+  private sealed record HistoryRow(OpKind Op, double Milliseconds, double AllocatedBytes, int Paths, long InputVertices, bool AllocationMeasured);
+
+  private const double FrameBudgetMs = 16.0; // ~60 fps when the operation fits
+
+  private string T(string key) => Demo.Lang.Get(_lang, key);
+
+  private string AllocationText(bool measured, double bytesPerRun) => measured
+    ? Svg.Number(bytesPerRun / 1024.0, "0.0") + " KB"
+    : T("notMeasured");
+
+  private string BuildMode =>
+#if CLIPPER2_WASM_AOT
+    T("buildAot");
+#else
+    T("buildInterpreted");
+#endif
+
+  private string OpLabel(OpKind op) => T(op switch
+  {
+    OpKind.Union => "opUnion",
+    OpKind.Intersect => "opIntersect",
+    OpKind.Difference => "opDifference",
+    OpKind.Xor => "opXor",
+    OpKind.Offset => "opOffset",
+    OpKind.Simplify => "opSimplify",
+    OpKind.RectClip => "opRectClip",
+    OpKind.Triangulate => "opTriangulate",
+    _ => "opPip"
+  });
+
+  private string OpInfo(OpKind op) => T(op switch
+  {
+    OpKind.Union => "opInfoUnion",
+    OpKind.Intersect => "opInfoIntersect",
+    OpKind.Difference => "opInfoDifference",
+    OpKind.Xor => "opInfoXor",
+    OpKind.Offset => "opInfoOffset",
+    OpKind.Simplify => "opInfoSimplify",
+    OpKind.RectClip => "opInfoRectClip",
+    OpKind.Triangulate => "opInfoTriangulate",
+    _ => "opInfoPip"
+  });
+
+  private string ScenLabel(Scenario scenario) => T(scenario switch
+  {
+    Scenario.MovingClip => "scenMovingClip",
+    Scenario.ClipWindow => "scenClipWindow",
+    Scenario.GrowingOffset => "scenGrowingOffset",
+    Scenario.Simplifying => "scenSimplifying",
+    _ => "scenGrowingUnion"
+  });
+
+  private string ScenWhy(Scenario scenario) => T(scenario switch
+  {
+    Scenario.MovingClip => "whyMovingClip",
+    Scenario.ClipWindow => "whyClipWindow",
+    Scenario.GrowingOffset => "whyGrowingOffset",
+    Scenario.Simplifying => "whySimplifying",
+    _ => "whyGrowingUnion"
+  });
+
+  private static string SubjectLabel(SubjectPreset preset) => preset switch
+  {
+    SubjectPreset.ManyBlobs => "12 blobs",
+    _ => preset.ToString()
+  };
+
+  protected override void OnInitialized()
+  {
+    // the page opens on the first animation: the section explains itself best when
+    // it is already showing something
+    StartScenario(Scenario.MovingClip);
+  }
+
+  /// <summary>Switches to a scenario and shows its first frame.</summary>
+  private void StartScenario(Scenario scenario)
+  {
+    _playing = false;
+    _scenario = scenario;
+    (_baseSubject, _baseClip) = Scenarios.Setup(scenario, _randomSeed);
+    _op = Scenarios.OpFor(scenario);
+    _history.Clear();
+    _fps = 0;
+    ApplyFrame(0);
+  }
+
+  private async Task TogglePlay()
+  {
+    if (_playing)
+    {
+      _playing = false;
+      return;
+    }
+
+    _playing = true;
+    double phase = 0;
+    long previousStart = 0;
+    while (_playing)
+    {
+      long start = Stopwatch.GetTimestamp();
+      double sinceLastFrame = previousStart == 0
+        ? 0
+        : (start - previousStart) * 1000.0 / Stopwatch.Frequency;
+      previousStart = start;
+
+      ApplyFrame(phase);
+      StateHasChanged();
+
+      // the frame cost is the library's cost: the operation runs from scratch every
+      // frame, and the time it takes is what is reported next to the animation
+      _lastFrameMs = (Stopwatch.GetTimestamp() - start) * 1000.0 / Stopwatch.Frequency;
+      if (sinceLastFrame > 0)
+      {
+        // fps of the whole loop (operation + paint + wait), not just of the operation
+        double instantFps = 1000.0 / Math.Max(sinceLastFrame, 0.1);
+        _fps = _fps <= 0 ? instantFps : _fps * 0.8 + 0.2 * instantFps;
+      }
+
+      double period = Scenarios.PeriodMilliseconds / Math.Max(0.1, _speedPercent / 100.0);
+      phase += _lastFrameMs / period;
+      if (phase >= 1) phase -= Math.Floor(phase);
+
+      // hand the thread back so the browser can paint the frame that was just
+      // built, and stay near 60 fps (the reported fps drops when an operation is
+      // too heavy for the frame budget, which is the honest reading)
+      double wait = FrameBudgetMs - _lastFrameMs;
+      await Task.Delay(wait > 1 ? (int) Math.Round(wait) : 1);
+    }
+
+    _fps = 0;
+  }
+
+  private void ApplyFrame(double phase)
+  {
+    FrameInputs frame = Scenarios.Frame(_scenario, phase, _baseSubject, _baseClip);
+    _subject = frame.Subject;
+    _clip = frame.Clip;
+    // a drag started mid-animation moves the shape that is on screen right now
+    _clipAtDragStart = frame.Clip;
+    _rect = frame.Rect;
+    if (_scenario == Scenario.GrowingOffset) _delta = frame.Delta;
+    if (_scenario == Scenario.Simplifying) _epsilon = frame.Epsilon;
+    Measure();
+  }
+
+  private void ToggleLang() => _lang = Demo.Lang.Other(_lang);
+
+  private void Select(OpKind op)
+  {
+    _op = op;
+    Measure();
+  }
+
+  private void Reset()
+  {
+    _subjectPreset = SubjectPreset.Star;
+    _clipPreset = ClipPreset.Blob;
+    Rebuild();
+  }
+
+  private void Randomize()
+  {
+    _randomSeed = Random.Shared.Next(1, 1_000_000);
+    Rebuild();
+  }
+
+  private int _randomSeed = 4711;
+
+  private void Rebuild()
+  {
+    _playing = false;
+    _fps = 0;
+    _rect = null;
+    Point64 centre = Shapes.Centre;
+    _subject = _subjectPreset switch
+    {
+      SubjectPreset.Star => new Paths64 { Shapes.Star(centre, 220, 95, 7, 12) },
+      SubjectPreset.Blob => new Paths64 { Shapes.Blob(new Random(_randomSeed), centre, 190, 18) },
+      SubjectPreset.Rect => new Paths64 { Shapes.Rect(280, 170, 440, 300) },
+      SubjectPreset.Grid => Shapes.Grid(4, 3, 120, 22, new Point64(150, 130)),
+      _ => Shapes.RandomPaths(_randomSeed, 12, 16, 70, Shapes.WorldWidth, Shapes.WorldHeight)
+    };
+
+    _clip = _clipPreset switch
+    {
+      ClipPreset.Blob => new Paths64
+      {
+        Shapes.Blob(new Random(_randomSeed + 99), new Point64(620, 330), 170, 16)
+      },
+      ClipPreset.Circle => new Paths64 { Clipper.Ellipse(new Point64(620, 330), 180, 0, 0) },
+      ClipPreset.Star => new Paths64 { Shapes.Star(new Point64(620, 330), 190, 80, 5, 40) },
+      _ => new Paths64 { Shapes.Rect(430, 240, 320, 250) }
+    };
+
+    _clipAtDragStart = Clone(_clip);
+    _history.Clear();
+    Measure();
+  }
+
+  private void Measure()
+  {
+    if (_dragging && _heavy) return;
+
+    OpOutcome outcome = OpRunner.Run(new OpRequest
+    {
+      Op = _op,
+      Subject = _subject,
+      Clip = _clip,
+      FillRule = _fillRule,
+      Delta = _delta,
+      Join = _join,
+      End = _end,
+      Epsilon = _epsilon,
+      Rect = _rect,
+      // an animation frame has to fit in a frame, so it runs the operation once
+      Repetitions = _playing ? 1 : _repetitions
+    });
+
+    _outcome = outcome;
+    _heavy = outcome.Milliseconds > 8;
+    if (_playing) return;
+
+    _history.Insert(0, new HistoryRow(_op, outcome.Milliseconds, outcome.AllocatedBytesPerRun,
+      outcome.Result.Count, outcome.InputVertices, outcome.AllocationMeasured));
+    if (_history.Count > 8) _history.RemoveAt(_history.Count - 1);
+  }
+
+  private void OnDragStarted()
+  {
+    // a manual edit takes over from the animation
+    _playing = false;
+    _dragging = true;
+    _clipAtDragStart = Clone(_clip);
+  }
+
+  private void OnVertexMoved(VertexMove move)
+  {
+    if (move.PathIndex < 0 || move.PathIndex >= _subject.Count) return;
+    if (move.VertexIndex < 0 || move.VertexIndex >= _subject[move.PathIndex].Count) return;
+    _subject[move.PathIndex][move.VertexIndex] = new Point64(move.X, move.Y);
+    Measure();
+  }
+
+  private void OnClipMoved(ClipMove move)
+  {
+    // the canvas reports the total movement since the drag started, so the shape is
+    // rebuilt from the snapshot instead of accumulating rounding errors
+    _clip = Translate(_clipAtDragStart, move.Dx, move.Dy);
+    Measure();
+  }
+
+  private void OnDragFinished()
+  {
+    _dragging = false;
+    Measure();
+  }
+
+  private static Paths64 Clone(Paths64 paths)
+  {
+    Paths64 copy = new(paths.Count);
+    foreach (Path64 path in paths)
+    {
+      Path64 clone = new(path.Count);
+      foreach (Point64 point in path) clone.Add(point);
+      copy.Add(clone);
+    }
+    return copy;
+  }
+
+  private static Paths64 Translate(Paths64 paths, long dx, long dy)
+  {
+    Paths64 moved = new(paths.Count);
+    foreach (Path64 path in paths)
+      moved.Add(dx == 0 && dy == 0 ? path : Clipper.TranslatePath(path, dx, dy));
+    return moved;
+  }
+}
