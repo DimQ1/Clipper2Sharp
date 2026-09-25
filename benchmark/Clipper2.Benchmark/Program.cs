@@ -4,14 +4,32 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Clipper2.Benchmark
 {
   internal static class Program
   {
     private static readonly List<string> Report = new List<string>();
+    private static readonly List<BaselineRow> Rows = new List<BaselineRow>();
     private static int _iterations = 3;
     private static string? _only = null;
+    private static string? _baselinePath = null;
+    private static string? _writeBaselinePath = null;
+
+    /// <summary>One measured workload, kept for the baseline file.</summary>
+    private sealed class BaselineRow
+    {
+      public string Workload = "";
+      public double PortMs;
+      public double RefMs;
+      public double PortMb;
+      public double RefMb;
+      public double Speedup;
+      public double AllocRatio;
+      public bool Identical;
+    }
 
     private static bool Wanted(string label)
     {
@@ -23,13 +41,21 @@ namespace Clipper2.Benchmark
       if (args.Length > 0 && int.TryParse(args[0], out int it) && it > 0)
         _iterations = it;
       foreach (string arg in args)
+      {
         if (arg.StartsWith("--only=", StringComparison.Ordinal))
           _only = arg.Substring(7);
+        else if (arg.StartsWith("--baseline=", StringComparison.Ordinal))
+          _baselinePath = arg.Substring(11);
+        else if (arg.StartsWith("--write-baseline=", StringComparison.Ordinal))
+          _writeBaselinePath = arg.Substring(17);
+      }
 
       Console.WriteLine("Clipper2Sharp benchmark");
       Console.WriteLine($"  runtime      : {Environment.Version} / {(Environment.Is64BitProcess ? "x64" : "x86")}");
       Console.WriteLine($"  processors   : {Environment.ProcessorCount}");
       Console.WriteLine($"  iterations   : {_iterations} (best of)");
+      if (_baselinePath != null) Console.WriteLine($"  baseline     : {_baselinePath}");
+      if (_writeBaselinePath != null) Console.WriteLine($"  writing      : {_writeBaselinePath}");
       Console.WriteLine();
 
       List<ClipCase> polygons = TestDataLoader.Load("Polygons.txt");
@@ -221,6 +247,114 @@ namespace Clipper2.Benchmark
         sw.Write(string.Join(Environment.NewLine, Report));
       }
       Console.WriteLine($"report written to {outFile}");
+
+      if (_writeBaselinePath != null) WriteBaseline(_writeBaselinePath);
+      if (_baselinePath != null) CompareWithBaseline(_baselinePath);
+    }
+
+    /// <summary>
+    /// Writes the measured rows to a baseline file so a later run can be compared
+    /// against a known starting point. Rows are merged by workload (a run filtered
+    /// with --only= updates just the workloads it measured, it does not drop the
+    /// rest), and the sections the benchmark does not own - the native C++ numbers,
+    /// the verification status, the list of remaining targets - are preserved.
+    /// </summary>
+    private static void WriteBaseline(string path)
+    {
+      JsonObject root = new JsonObject();
+      if (File.Exists(path))
+      {
+        try { root = JsonNode.Parse(File.ReadAllText(path))?.AsObject() ?? root; }
+        catch (JsonException) { root = new JsonObject(); }
+      }
+
+      // keep the recorded order, and update rows in place
+      List<string> order = new List<string>();
+      Dictionary<string, JsonObject> byWorkload = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
+      if (root["managed"] is JsonArray previous)
+      {
+        foreach (JsonNode? node in previous)
+        {
+          if (node is JsonObject obj && obj["workload"] != null)
+          {
+            string key = obj["workload"]!.GetValue<string>();
+            order.Add(key);
+            byWorkload[key] = obj;
+          }
+        }
+      }
+      foreach (BaselineRow row in Rows)
+      {
+        if (!byWorkload.ContainsKey(row.Workload)) order.Add(row.Workload);
+        byWorkload[row.Workload] = new JsonObject
+        {
+          ["workload"] = row.Workload,
+          ["portMs"] = Math.Round(row.PortMs, 4),
+          ["refMs"] = Math.Round(row.RefMs, 4),
+          ["portMB"] = Math.Round(row.PortMb, 4),
+          ["refMB"] = Math.Round(row.RefMb, 4),
+          ["speedupVsRefCSharp"] = Math.Round(row.Speedup, 4),
+          ["allocRatioVsRefCSharp"] = Math.Round(row.AllocRatio, 4),
+          ["resultsIdentical"] = row.Identical
+        };
+      }
+
+      JsonArray managed = new JsonArray();
+      foreach (string key in order)
+        if (byWorkload.TryGetValue(key, out JsonObject? row))
+          managed.Add(row.DeepClone());
+
+      root["recordedAtUtc"] = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
+      root["environment"] = new JsonObject
+      {
+        ["runtime"] = Environment.Version.ToString(),
+        ["framework"] = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
+        ["os"] = System.Runtime.InteropServices.RuntimeInformation.OSDescription,
+        ["processors"] = Environment.ProcessorCount,
+        ["iterationsPerRun"] = _iterations,
+        ["machineNote"] = "development machine runs at 75-85% background CPU: time ratios of the short rows " +
+          "move +-10-15% between sessions, allocation is deterministic"
+      };
+      root["managed"] = managed;
+
+      Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+      File.WriteAllText(path, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+      Console.WriteLine();
+      Console.WriteLine($"baseline written to {path} ({Rows.Count} workloads)");
+    }
+
+    /// <summary>Prints the current run against a previously recorded baseline.</summary>
+    private static void CompareWithBaseline(string path)
+    {
+      if (!File.Exists(path))
+      {
+        Console.WriteLine($"baseline {path} not found - skipping the comparison");
+        return;
+      }
+      JsonObject root = JsonNode.Parse(File.ReadAllText(path))?.AsObject() ?? new JsonObject();
+      Dictionary<string, JsonNode> was = new Dictionary<string, JsonNode>();
+      if (root["managed"] is JsonArray array)
+        foreach (JsonNode? node in array)
+          if (node != null && node["workload"] != null)
+            was[node["workload"]!.GetValue<string>()] = node;
+
+      Console.WriteLine();
+      Console.WriteLine($"against baseline ({root["recordedAtUtc"]?.GetValue<string>()}):");
+      Console.WriteLine($"{ "workload",-52} {"now",9} {"baseline",9} {"delta",9}  {"speed vs ref now/was",22}");
+      double worst = 0;
+      string worstName = "";
+      foreach (BaselineRow row in Rows)
+      {
+        if (!was.TryGetValue(row.Workload, out JsonNode? before)) continue;
+        double wasMs = before["portMs"]!.GetValue<double>();
+        double wasSpeed = before["speedupVsRefCSharp"]!.GetValue<double>();
+        double delta = wasMs > 0 ? (row.PortMs - wasMs) / wasMs * 100.0 : 0;
+        if (delta > worst) { worst = delta; worstName = row.Workload; }
+        Console.WriteLine($"{row.Workload,-52} {row.PortMs,9:0.00} {wasMs,9:0.00} {delta,8:+0.0;-0.0;0.0}%  " +
+          $"{row.Speedup,8:0.00}x / {wasSpeed:0.00}x");
+      }
+      if (worstName.Length > 0)
+        Console.WriteLine($"largest regression: {worstName} {worst:+0.0}% (treat anything under ~15% as machine noise)");
     }
 
     /// <summary>
@@ -338,6 +472,18 @@ namespace Clipper2.Benchmark
       bool match = newResult.Equals(refResult);
       double speedup = newStats.ms > 0 ? refStats.ms / newStats.ms : 1.0;
       double allocRatio = refStats.bytes > 0 ? (double) newStats.bytes / refStats.bytes : 1.0;
+
+      Rows.Add(new BaselineRow
+      {
+        Workload = label,
+        PortMs = newStats.ms,
+        RefMs = refStats.ms,
+        PortMb = newStats.bytes / 1048576.0,
+        RefMb = refStats.bytes / 1048576.0,
+        Speedup = speedup,
+        AllocRatio = allocRatio,
+        Identical = match
+      });
 
       StringBuilder sb = new StringBuilder();
       sb.AppendLine($"### {label}");

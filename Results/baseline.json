@@ -1,0 +1,316 @@
+{
+  "recordedAtUtc": "2026-09-25T07:25:40Z",
+  "environment": {
+    "runtime": "10.0.12",
+    "framework": ".NET 10.0.12",
+    "os": "Microsoft Windows 10.0.26200",
+    "processors": 12,
+    "iterationsPerRun": 7,
+    "machineNote": "development machine runs at 75-85% background CPU: time ratios of the short rows move +-10-15% between sessions, allocation is deterministic"
+  },
+  "managed": [
+    {
+      "workload": "boolean ops (Polygons.txt, all cases)",
+      "portMs": 27.7608,
+      "refMs": 29.9706,
+      "portMB": 17.3732,
+      "refMB": 16.3343,
+      "speedupVsRefCSharp": 1.0796,
+      "allocRatioVsRefCSharp": 1.0636,
+      "resultsIdentical": false
+    },
+    {
+      "workload": "union: add subject paths only (ingestion)",
+      "portMs": 0.1186,
+      "refMs": 0.1134,
+      "portMB": 0.4336,
+      "refMB": 0.4496,
+      "speedupVsRefCSharp": 0.9562,
+      "allocRatioVsRefCSharp": 0.9643,
+      "resultsIdentical": true
+    },
+    {
+      "workload": "union of every subject path (Paths64)",
+      "portMs": 437.055,
+      "refMs": 490.2661,
+      "portMB": 32.7463,
+      "refMB": 32.6796,
+      "speedupVsRefCSharp": 1.1217,
+      "allocRatioVsRefCSharp": 1.002,
+      "resultsIdentical": false
+    },
+    {
+      "workload": "union of the same paths moved apart (no intersections)",
+      "portMs": 7.2685,
+      "refMs": 7.3705,
+      "portMB": 4.8866,
+      "refMB": 4.1502,
+      "speedupVsRefCSharp": 1.014,
+      "allocRatioVsRefCSharp": 1.1774,
+      "resultsIdentical": false
+    },
+    {
+      "workload": "offsets (Offsets.txt, delta = 1, Round/Polygon)",
+      "portMs": 1.8339,
+      "refMs": 1.7949,
+      "portMB": 1.9308,
+      "refMB": 2.5963,
+      "speedupVsRefCSharp": 0.9787,
+      "allocRatioVsRefCSharp": 0.7437,
+      "resultsIdentical": false
+    },
+    {
+      "workload": "offsets (Offsets.txt, delta = 27, Miter/Square)",
+      "portMs": 4.0103,
+      "refMs": 3.9493,
+      "portMB": 1.4697,
+      "refMB": 1.0716,
+      "speedupVsRefCSharp": 0.9848,
+      "allocRatioVsRefCSharp": 1.3715,
+      "resultsIdentical": true
+    },
+    {
+      "workload": "rect clip (off all subjects into 100,100,700,500)",
+      "portMs": 0.6075,
+      "refMs": 0.7686,
+      "portMB": 0.6382,
+      "refMB": 0.6225,
+      "speedupVsRefCSharp": 1.2652,
+      "allocRatioVsRefCSharp": 1.0252,
+      "resultsIdentical": true
+    },
+    {
+      "workload": "rect clip lines (off all subjects into 100,100,700,500)",
+      "portMs": 0.3732,
+      "refMs": 0.4695,
+      "portMB": 0.6183,
+      "refMB": 0.5975,
+      "speedupVsRefCSharp": 1.258,
+      "allocRatioVsRefCSharp": 1.0349,
+      "resultsIdentical": true
+    },
+    {
+      "workload": "simplify paths (all subjects, eps = 0.5)",
+      "portMs": 0.0812,
+      "refMs": 0.0766,
+      "portMB": 0.1651,
+      "refMB": 0.2127,
+      "speedupVsRefCSharp": 0.9433,
+      "allocRatioVsRefCSharp": 0.7763,
+      "resultsIdentical": true
+    },
+    {
+      "workload": "triangulate 2000 vertex polygon",
+      "portMs": 1.5105,
+      "refMs": 1.7987,
+      "portMB": 1.0728,
+      "refMB": 1.0925,
+      "speedupVsRefCSharp": 1.1908,
+      "allocRatioVsRefCSharp": 0.9819,
+      "resultsIdentical": true
+    },
+    {
+      "workload": "area (Paths64 of every subject+clip)",
+      "portMs": 0.0244,
+      "refMs": 0.0237,
+      "portMB": 0.0854,
+      "refMB": 0.0854,
+      "speedupVsRefCSharp": 0.9713,
+      "allocRatioVsRefCSharp": 1.0004,
+      "resultsIdentical": true
+    },
+    {
+      "workload": "get bounds (Paths64 of every subject+clip)",
+      "portMs": 0.0212,
+      "refMs": 0.022,
+      "portMB": 0.0854,
+      "refMB": 0.0854,
+      "speedupVsRefCSharp": 1.0377,
+      "allocRatioVsRefCSharp": 1.0004,
+      "resultsIdentical": true
+    },
+    {
+      "workload": "point in polygon (200k probes)",
+      "portMs": 1207.5223,
+      "refMs": 1175.9904,
+      "portMB": 0.0854,
+      "refMB": 0.0854,
+      "speedupVsRefCSharp": 0.9739,
+      "allocRatioVsRefCSharp": 1,
+      "resultsIdentical": true
+    },
+    {
+      "workload": "scale round trip (Paths64 -> PathsD -> Paths64, x1000)",
+      "portMs": 0.0647,
+      "refMs": 0.0739,
+      "portMB": 0.2526,
+      "refMB": 0.2523,
+      "speedupVsRefCSharp": 1.1422,
+      "allocRatioVsRefCSharp": 1.0011,
+      "resultsIdentical": true
+    },
+    {
+      "workload": "offset: every subject path as its own group",
+      "portMs": 22.1028,
+      "refMs": 22.1669,
+      "portMB": 13.7857,
+      "refMB": 12.7531,
+      "speedupVsRefCSharp": 1.0029,
+      "allocRatioVsRefCSharp": 1.081,
+      "resultsIdentical": false
+    },
+    {
+      "workload": "rect clip: every subject path separately",
+      "portMs": 0.6168,
+      "refMs": 0.7746,
+      "portMB": 0.6851,
+      "refMB": 0.6633,
+      "speedupVsRefCSharp": 1.2558,
+      "allocRatioVsRefCSharp": 1.0328,
+      "resultsIdentical": true
+    }
+  ],
+  "method": {
+    "managed": "interleaved A/B in one process (order swapped every round), fastest uninterrupted repetition per round (first repetition dropped), best of 7 rounds",
+    "native": "same workload definitions in benchmark/Clipper2.CppBenchmark, best of 3 processes, allocation counted with a replacing operator new",
+    "caveat": "this machine runs at 75-85% background CPU, so time ratios of the short rows move by +-10-15% between sessions; allocation numbers are deterministic"
+  },
+  "verification": {
+    "tests": "29/29 MSTest",
+    "cppFidelity": "197 of 197 cases identical to the C++ -O2 build (path count and area); the -march=native build differs from its own -O2 sibling on 8 of them (FMA contraction), and the port matches the non-contracting builds",
+    "cppFidelityFiles": "Results/fidelity-cpp.txt vs Results/fidelity-port.txt (diff them case by case)",
+    "csharpFidelity": "193 of 195 polygon cases identical to the upstream C# 2.0.0 port; the 2 remaining boolean cases and both offset cases differ where 2.0.0 and 2.0.1 legitimately diverge (the port matches C++)",
+    "profileTool": "dotnet-trace collect --profile dotnet-sampled-thread-time + dotnet-trace report topN",
+    "publicSurface": "Clipper2Lib namespace, Clipper64/ClipperD/ClipperOffset/PolyTree/Paths/Point/JoinType... as in the upstream C# port; see docs/porting-notes.md 2.1 for the JoinType member numbering"
+  },
+  "nextTargets": [
+    {
+      "area": "union sweep (all 249 paths in one call)",
+      "measured": "BuildIntersectList 12%, IntersectEdges 7%, BuildPaths 5%, DoIntersections 4% of the row",
+      "status": "0.73x of C++ in the recorded window (0.68x in the profiler round's own window): remaining gap is managed overhead in the tight AEL/scanline loops; needs an index/struct based sweep and would put the 197/197 fidelity at risk"
+    },
+    {
+      "area": "allocation on the small rows",
+      "measured": "boolean 1.06x, offset groups 1.08x, union 1.00x, triangulate 0.98x of the reference bytes (deterministic)",
+      "status": "engine pools cover vertices/out-points/out-recs; left: the per-outrec Path64 in BuildPaths and the temporaries in ClipperOffset and RectClip64"
+    },
+    {
+      "area": "Delaunay.ForceLegal",
+      "measured": "32% of a triangulation (two frames)",
+      "status": "already 1.27x faster than C++ in the recorded window; the legalisation loop is the next candidate if triangulation matters"
+    },
+    {
+      "area": "point in polygon",
+      "measured": "the Y-scan loops are ~84% of the row",
+      "status": "0.72x of C++, 0.97x of the C# 2.0.0 port in the recorded window (the profiler round's session read 0.84x and 1.19x for the same code) - the row that moves most between sessions, so re-measure it before optimising; further gains need a SIMD Y scan"
+    },
+    {
+      "area": "GC throughput on tiny operations",
+      "measured": "GC poll worker + Buffer.Memmove: 42%+10% of boolean ops, 26%+22% of offsets, 85% of rect clip",
+      "status": "these are the rows where the port already beats C++; cutting per-operation allocation is the lever"
+    }
+  ],
+  "nativeCpp": {
+    "build": "MinGW g++ 13.1, -O3 -DNDEBUG -march=native -static, Clipper2 2.0.1 default build (no CLIPPER2_HI_PRECISION)",
+    "log": "Results/cpp-native.log",
+    "rows": [
+      {
+        "workload": "boolean ops (Polygons.txt, all cases)",
+        "cppMs": 41.2,
+        "portMs": 27.7608,
+        "portOverCpp": 1.48
+      },
+      {
+        "workload": "union: add subject paths only (ingestion)",
+        "cppMs": 0.18,
+        "portMs": 0.1186,
+        "portOverCpp": 1.52
+      },
+      {
+        "workload": "union of every subject path (Paths64)",
+        "cppMs": 318.37,
+        "portMs": 437.055,
+        "portOverCpp": 0.73
+      },
+      {
+        "workload": "union of the same paths moved apart (no intersections)",
+        "cppMs": 8.42,
+        "portMs": 7.2685,
+        "portOverCpp": 1.16
+      },
+      {
+        "workload": "offsets (Offsets.txt, delta = 1, Round/Polygon)",
+        "cppMs": 1.81,
+        "portMs": 1.8339,
+        "portOverCpp": 0.99
+      },
+      {
+        "workload": "offsets (Offsets.txt, delta = 27, Miter/Square)",
+        "cppMs": 3.58,
+        "portMs": 4.0103,
+        "portOverCpp": 0.89
+      },
+      {
+        "workload": "rect clip (off all subjects into 100,100,700,500)",
+        "cppMs": 0.68,
+        "portMs": 0.6075,
+        "portOverCpp": 1.12
+      },
+      {
+        "workload": "rect clip lines (off all subjects into 100,100,700,500)",
+        "cppMs": 0.57,
+        "portMs": 0.3732,
+        "portOverCpp": 1.53
+      },
+      {
+        "workload": "simplify paths (all subjects, eps = 0.5)",
+        "cppMs": 0.12,
+        "portMs": 0.0812,
+        "portOverCpp": 1.48
+      },
+      {
+        "workload": "triangulate 2000 vertex polygon",
+        "cppMs": 1.92,
+        "portMs": 1.5105,
+        "portOverCpp": 1.27
+      },
+      {
+        "workload": "area (Paths64 of every subject+clip)",
+        "cppMs": 0.06,
+        "portMs": 0.0244,
+        "portOverCpp": 2.46
+      },
+      {
+        "workload": "get bounds (Paths64 of every subject+clip)",
+        "cppMs": 0.06,
+        "portMs": 0.0212,
+        "portOverCpp": 2.83
+      },
+      {
+        "workload": "point in polygon (200k probes)",
+        "cppMs": 865.51,
+        "portMs": 1207.5223,
+        "portOverCpp": 0.72
+      },
+      {
+        "workload": "scale round trip (Paths64 -> PathsD -> Paths64, x1000)",
+        "cppMs": 0.13,
+        "portMs": 0.0647,
+        "portOverCpp": 2.01
+      },
+      {
+        "workload": "offset: every subject path as its own group",
+        "cppMs": 23.61,
+        "portMs": 22.1028,
+        "portOverCpp": 1.07
+      },
+      {
+        "workload": "rect clip: every subject path separately",
+        "cppMs": 0.75,
+        "portMs": 0.6168,
+        "portOverCpp": 1.22
+      }
+    ],
+    "note": "the C++ rows and the managed rows in this file were measured in the same time window; rebuild the native side with the command in benchmark/Clipper2.CppBenchmark/clipper_bench.cpp"
+  }
+}

@@ -1,0 +1,18 @@
+loaded 195 polygon cases and 2 offset cases (249 subject paths)
+
+boolean ops (Polygons.txt, all cases)                      cpp     41.20 ms /   12.92 MB   16560 paths / area 6223511698
+union: add subject paths only (ingestion)                  cpp      0.18 ms /    0.30 MB   0 paths / area 0
+union of every subject path (Paths64)                      cpp    318.37 ms /   25.52 MB   6078 paths / area 34874743528
+union of the same paths moved apart (no intersections)     cpp      8.42 ms /    3.74 MB   2280 paths / area 34934172658
+offsets (Offsets.txt, delta = 1, Round/Polygon)            cpp      1.81 ms /    1.53 MB   6 paths / area -172785
+offsets (Offsets.txt, delta = 27, Miter/Polygon)           cpp      3.58 ms /    1.24 MB   3 paths / area -286296
+offset: every subject path as its own group                cpp     23.61 ms /   10.58 MB   1389 paths / area 34907039414
+rect clip (all subjects into 100,100,700,500)              cpp      0.68 ms /    0.55 MB   327 paths / area 1551478
+rect clip lines (all subjects into 100,100,700,500)        cpp      0.57 ms /    0.68 MB   1033 paths / area 1113602
+rect clip: every subject path separately                   cpp      0.75 ms /    0.72 MB   327 paths / area 1551478
+simplify paths (all subjects, eps = 0.5)                   cpp      0.12 ms /    0.18 MB   249 paths / area 34870839030
+triangulate 2000 vertex polygon                            cpp      1.92 ms /    0.84 MB   1730 paths / area 31415501224
+area (Paths64 of every subject+clip)                       cpp      0.06 ms /    0.14 MB   414 paths / area 48821915730
+get bounds (Paths64 of every subject+clip)                 cpp      0.06 ms /    0.14 MB   6769764 paths / area 0
+point in polygon (200k probes)                             cpp    865.51 ms /    0.00 MB   834 paths / area 0
+scale round trip (Paths64 -> PathsD -> Paths64, x1000)     cpp      0.13 ms /    0.22 MB   249 paths / area 34870839034

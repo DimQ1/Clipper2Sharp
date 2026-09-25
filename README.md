@@ -157,6 +157,35 @@ except three, and the three exceptions are understood:
   passing the numeric value compares different operations (see
   `docs/porting-notes.md` §2.1). The benchmark passes the *names*.
 
+### The recorded baseline (a known starting point)
+
+`Results/BASELINE.md` and `Results/baseline.json` record the state this README
+describes, so a later optimisation round can be measured from it instead of from
+memory: the per workload times and allocations against the upstream C# port, the
+same rows against native C++, the verification status (tests, bit-exact
+fidelity) and the list of places the profiler says the remaining time is. The
+benchmark reads and writes it:
+
+```powershell
+# compare this build against the recorded point (prints now / baseline / delta / speed)
+dotnet run -c Release --project benchmark/Clipper2.Benchmark -- 7 --baseline=Results/baseline.json
+
+# record a new known point
+dotnet run -c Release --project benchmark/Clipper2.Benchmark -- 7 --write-baseline=Results/baseline.json
+pwsh Results/record-baseline.ps1     # re-pair the native C++ rows, regenerate BASELINE.md
+```
+
+Rows are merged by workload, so a run filtered with `--only=` updates only what
+it measured, and the sections the benchmark does not own (the native C++ rows,
+the verification status, the remaining targets) survive a rewrite. The helper
+script behaves the same way: it re-pairs the native rows and rewrites
+`BASELINE.md`, but it leaves the `method` / `verification` / `nextTargets`
+sections in the JSON alone unless it is called with `-RefreshDefaults`, so
+numbers referenced by hand-written text are not silently reset. The evidence
+the baseline quotes is in the same folder: `Results/cpp-native.log` (native
+numbers), `Results/fidelity-cpp.txt` vs `Results/fidelity-port.txt` (the per case
+dumps that prove the bit-exact result) and the managed benchmark logs.
+
 ### Why there is no `float` and no `Half` here
 `System.Half` (binary16) is the one type this port deliberately does **not** use,
 and the same goes for `float` in the geometry. Two measurements explain why:

@@ -135,6 +135,13 @@ harness, so anything inside ±10% of 1.00x is parity.
 
 ### 4.2 Optimisation results (best of the last two runs)
 
+The numbers below are the recorded baseline: `Results/BASELINE.md` (readable) and
+`Results/baseline.json` (machine readable) hold the same rows plus the native C++
+numbers, the verification status and the remaining targets, and the benchmark can
+compare a new build against them (`--baseline=Results/baseline.json`) or move the
+point forward (`--write-baseline=Results/baseline.json`, then
+`pwsh Results/record-baseline.ps1`).
+
 | workload | speed-up | allocation |
 |---|---:|---:|
 | boolean ops (195 cases) | 1.04x | 1.06x |
@@ -219,23 +226,38 @@ workload for workload, so the port can be measured against the sources it was
 ported from (MinGW g++ 13.1, `-O3 -DNDEBUG -march=native -static`, default build,
 allocation counted with a counting `operator new`).
 
-Speed, port / C++ (above 1.00x = the port is faster):
+Speed, port / C++ (above 1.00x = the port is faster). These are the same-window
+pairs recorded in `Results/baseline.json` (`nativeCpp.rows`) and `Results/BASELINE.md`,
+so they are the numbers a new round should be compared against:
 
-| workload | ratio | | workload | ratio |
-|---|---:|---|---|---:|
-| area, bounds (all paths) | 3.00x | | triangulate 2000 points | 1.14x |
-| scale round trip | 2.00x | | rect clip (all) | 1.03x |
-| rect clip lines | 1.49x | | offset (Round, delta 1) | 0.98x |
-| path ingestion | 1.42x | | offset, every path a group | 0.96x |
-| simplify paths | 1.38x | | point in polygon | 0.85x |
-| boolean ops (195 cases) | 1.18x | | union of every subject path | 0.59x |
-| rect clip, per path | 1.16x | | | |
+| workload | ratio |
+|---|---:|
+| bounds (all paths) | 2.83x |
+| area (all paths) | 2.46x |
+| scale round trip | 2.01x |
+| rect clip lines | 1.53x |
+| path ingestion | 1.52x |
+| boolean ops (195 cases) | 1.48x |
+| simplify paths | 1.48x |
+| triangulate 2000 points | 1.27x |
+| rect clip, per path | 1.22x |
+| union, same paths moved apart | 1.16x |
+| rect clip (all) | 1.12x |
+| offset, every path a group | 1.07x |
+| offset (Round, delta 1) | 0.99x |
+| offset (Miter, delta 27) | 0.89x |
+| union of every subject path | 0.73x |
+| point in polygon | 0.72x |
 
 The split is systematic: the port wins the rows that can be split into independent
 batches (a worker per path or per offset group), the span/SIMD rows and the
 allocation-dominated rows (pools plus a bump-allocating GC beat `new`/`delete` per
 vertex), and it loses where one big single-threaded sweep dominates — the union of
-all 249 paths (1.7x slower) and point-in-polygon.
+all 249 paths (1.4x slower) and point-in-polygon.
+
+Geometric mean over the 14 rows that are not that sweep pair is ~1.28x; the
+single-call union and the 200k-probe point-in-polygon loop are the two rows that
+drag the total below parity.
 
 Results, per case (count and area), over the 195 boolean cases and the 2 offset
 cases — **197 of 197 identical to the C++ sources** once the port had its own
@@ -282,21 +304,27 @@ sort (`struct IntersectListSort : IComparer<IntersectNode>` + `_intersectList.So
 and not the port's once the port had its own sorter — the port's own sort is
 recognisable by its method names.
 
-Measured effect of the round (same-window pairs against native C++):
+Measured effect of the round (same-window pairs against native C++). The `after`
+column is the session that ran the round; the recorded baseline (`Results/BASELINE.md`)
+is a later session and reads a little differently on the rows the machine's
+background load hits hardest — the union is 0.73x there and point-in-polygon is
+0.72x of C++ / 0.97x of the C# 2.0.0 port, i.e. the PIP row swung by ~18% between
+the two sessions on unchanged code, which is why it is the first row to re-measure
+before touching it:
 
 | workload | before | after |
 |---|---:|---:|
-| union of every subject path | 0.59x | **0.68x** |
-| point in polygon | 0.85x | **0.84x** but 1.19x of the *C# 2.0.0 port* (was 0.95–1.01x) |
-| triangulate | 1.14x | **1.23x** |
-| boolean ops | 1.18x | **1.31x** |
-| rect clip lines / rect clip per path | 1.49x / 1.16x | 1.46x / 1.21x |
+| union of every subject path | 0.59x | **0.68x** (0.73x recorded) |
+| point in polygon | 0.85x | **0.84x** but 1.19x of the *C# 2.0.0 port* (was 0.95–1.01x) — 0.72x / 0.97x recorded |
+| triangulate | 1.14x | **1.23x** (1.27x recorded) |
+| boolean ops | 1.18x | **1.31x** (1.48x recorded) |
+| rect clip lines / rect clip per path | 1.49x / 1.16x | 1.46x / 1.21x (1.53x / 1.22x recorded) |
 
 What is left, with the share the profiler attributes to it:
 
 * **the union's sweep itself** (`BuildIntersectList` 12%, `IntersectEdges` 7%,
   `BuildPaths` 5%, `DoIntersections` 4%): this is the engine doing its work, and the
-  remaining gap to C++ (~1.5x) is plain managed-code overhead in the tight AEL/
+  remaining gap to C++ (~1.4x) is plain managed-code overhead in the tight AEL/
   scanline loops (field access through object references, no cross-method inlining).
   Closing it would mean restructuring the sweep around index-based structs, which
   would put the bit-exact result of §4.4 at risk for a row that is already the
@@ -307,6 +335,11 @@ What is left, with the share the profiler attributes to it:
   temporary paths in `ClipperOffset`/`RectClip64`.
 * **`Delaunay.ForceLegal`** (32% of a triangulation, two frames): the Delaunay
   legalisation loop is the triangulator's hot spot; the port already beats the C++
-  there (1.23x).
+  there (1.27x recorded).
+
+Those areas — the union's sweep, the allocation left on the small rows, the
+legalisation loop and the point-in-polygon scan — are also the `nextTargets` list
+inside `Results/baseline.json`, so the next optimisation round can pick them up
+without re-deriving them (see §4.2 for how to compare against the recorded point).
 
 
