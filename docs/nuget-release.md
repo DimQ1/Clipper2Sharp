@@ -90,15 +90,32 @@ Pick one.
    |---|---|
    | Repository Owner | `DimQ1` |
    | Repository | `Clipper2Sharp` |
-   | Workflow File | `publish.yml` (the file name only, not the path, not the `name:` field) |
-   | Environment | `release` (the workflow uses `environment: release`, so this must match) |
+   | Workflow File | `publish.yml` (the file name only — not `.github/workflows/`, not the workflow `name:`) |
+   | Environment | `release` |
 
-2. GitHub → repository → **Settings → Environments → New environment** → `release`,
+   The environment is optional: fill it in to restrict the policy to that
+   environment (it must then match the workflow's `environment:` exactly), or
+   leave it blank — the claim is only checked when the policy sets it.
+
+2. On the same policy, set the **scopes**: allow pushing **new packages** and **new
+   versions of existing packages**, and restrict the package **glob** to
+   `Clipper2Sharp` (or `*` if you intend to publish more packages from here) — a
+   policy without the matching scope will refuse the push.
+
+3. Choose the **policy owner**: your own account, or an organization you are an
+   active member of. The policy covers every package that owner owns, and it goes
+   inactive if that owner (or your membership) disappears.
+
+4. GitHub → repository → **Settings → Environments → New environment** → `release`,
    then add an **environment secret** `NUGET_USER` with the nuget.org *profile name*
-   (not the e-mail). Optionally add required reviewers to gate every publish.
+   (not the e-mail) — or a repository-level secret, both are visible to the job.
+   Optionally add required reviewers to gate every publish.
 
-While the repository is private the policy is *temporarily active*: it becomes
-permanent after the first successful publish, which must happen within 7 days.
+The policy is **temporarily active for 7 days** while the GitHub repository is
+private: it behaves normally, but if nothing is published within that window it
+becomes inactive — and the 7-day window can be restarted from the policy page at
+any time. The first successful publish is what makes it permanent (it is the one
+that confirms the repository's numeric id to nuget.org).
 
 ### B. API key secret
 
@@ -120,11 +137,16 @@ Get-ChildItem -Recurse "$env:TEMP\nupkg-inspect" | Select-Object FullName
 | symptom | cause | fix |
 |---|---|---|
 | `NuGet/login` fails with 403 | `id-token: write` missing | it is set in the workflow; don't remove it |
-| "no matching policy" / push unauthorized | policy fields do not match, e.g. workflow file name or the environment | `publish.yml`, owner `DimQ1`, repo `Clipper2Sharp`, environment `release` |
+| "no matching policy" / push unauthorized | policy fields do not match, e.g. workflow file name or the environment | `publish.yml`, owner `DimQ1`, repo `Clipper2Sharp`; if the policy sets an environment it must be `release` |
+| push rejected although the policy exists | the policy has no scope for that action, or the package glob does not match | allow *new packages* + *new versions*, glob `Clipper2Sharp` |
 | "no credentials" from the push step | neither secret is set | add `NUGET_API_KEY`, or `NUGET_USER` + the nuget.org policy |
 | tag version mismatch | tag and `<Version>` differ | bump `<Version>`, commit, tag *that* commit |
 | `already_exists` | the version is already on nuget.org | nothing to do — `--skip-duplicate` makes this a pass; bump the version for a real release |
 | a re-run repeats the old YAML | `gh run rerun` replays the workflow from the tagged commit | push a fix to `main` and re-run, or use the manual dry run |
+
+The temporary key is valid for **one hour and one use**: the OIDC token is
+exchanged for a single API key, which is why the login step sits immediately before
+the push instead of at the top of the job.
 
 The GitHub Release (with the `.nupkg` attached) is deliberately **not** part of the
 publish workflow — a conflicting release would otherwise block the NuGet upload.
