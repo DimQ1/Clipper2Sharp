@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Clipper2.WebDemo.Demo;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Clipper2Lib.UnitTests
@@ -11,6 +13,207 @@ namespace Clipper2Lib.UnitTests
   [TestClass]
   public class TestMisc
   {
+    [TestMethod]
+    public void TestWebDemoPointInPolygonFillRules()
+    {
+      Paths64 subject = new Paths64 {
+        Shapes.Rect(5, 5, 250, 250), Shapes.Rect(55, 55, 100, 100),
+        Shapes.Rect(505, 5, 150, 150) };
+      foreach (bool hole in new[] { false, true })
+      {
+        if (hole) subject[1].Reverse();
+        foreach (FillRule fillRule in Enum.GetValues<FillRule>())
+        {
+          OpOutcome result = OpRunner.Run(new OpRequest { Op = OpKind.PointInPolygon,
+            Subject = subject, FillRule = fillRule, Repetitions = 1 });
+          bool Inside(long x, long y)
+          {
+            int index = result.Probes!.FindIndex(probe => probe.X == x && probe.Y == y);
+            Assert.IsTrue(index >= 0);
+            return result.Probes[index].Inside;
+          }
+          bool filled = fillRule != FillRule.Negative;
+          Assert.AreEqual(filled, Inside(30, 30), $"First contour: {fillRule}, hole={hole}");
+          Assert.AreEqual(filled, Inside(530, 30), $"Last contour: {fillRule}, hole={hole}");
+          Assert.AreEqual(filled, Inside(5, 80), $"Boundary: {fillRule}, hole={hole}");
+          Assert.AreEqual(filled && !hole && fillRule != FillRule.EvenOdd, Inside(80, 80));
+          Assert.IsFalse(Inside(905, 605));
+        }
+      }
+    }
+
+    [TestMethod]
+    public void TestWebDemoProbeGridFitsCanvas()
+    {
+      (long[] xs, long[] ys) = Shapes.ProbeGrid();
+      Assert.AreEqual(xs.Length, ys.Length);
+      Assert.IsTrue(xs.Length > 0);
+      for (int index = 0; index < xs.Length; index++)
+      {
+        Assert.IsTrue(xs[index] >= 0 && xs[index] <= Shapes.WorldWidth);
+        Assert.IsTrue(ys[index] >= 0 && ys[index] <= Shapes.WorldHeight);
+      }
+    }
+
+    [TestMethod]
+    public void TestBooleanOpDoubleMatchesFreshEngine()
+    {
+      PathsD subject = new PathsD {
+        new RectD(-12.125, -3.625, 18.375, 20.875).AsPath(),
+        new RectD(22.125, -3.625, 38.375, 20.875).AsPath() };
+      PathsD clip = new PathsD { new RectD(-5.125, 1.625, 9.375, 13.875).AsPath() };
+      List<int> precisions = new List<int> { 2, 2 };
+      for (int precision = -8; precision <= 8; precision++)
+      {
+        precisions.Add(precision);
+        precisions.Add(precision);
+      }
+      foreach (int precision in precisions)
+      foreach (ClipType clipType in Enum.GetValues<ClipType>())
+      foreach (FillRule fillRule in Enum.GetValues<FillRule>())
+      foreach (PathsD? clips in new PathsD?[] { clip, null, new PathsD() })
+      {
+        ClipperD engine = new ClipperD(precision);
+        engine.AddSubject(subject);
+        if (clips != null) engine.AddClip(clips);
+        PathsD expected = new PathsD();
+        engine.Execute(clipType, fillRule, expected);
+        PathsD actual = Clipper.BooleanOp(clipType, fillRule, subject, clips, precision);
+        Assert.AreEqual(expected.Count, actual.Count);
+        for (int index = 0; index < expected.Count; index++)
+          CollectionAssert.AreEqual(expected[index], actual[index]);
+
+        PolyTreeD expectedTree = new PolyTreeD();
+        PolyTreeD actualTree = new PolyTreeD();
+        engine.Execute(clipType, fillRule, expectedTree);
+        Clipper.BooleanOp(clipType, fillRule, subject, clips, actualTree, precision);
+        expected = Clipper.PolyTreeToPathsD(expectedTree);
+        actual = Clipper.PolyTreeToPathsD(actualTree);
+        Assert.AreEqual(expectedTree.Count, actualTree.Count);
+        Assert.AreEqual(expected.Count, actual.Count);
+        for (int index = 0; index < expected.Count; index++)
+          CollectionAssert.AreEqual(expected[index], actual[index]);
+      }
+    }
+
+    [TestMethod]
+    public void TestClipperDSharedEngineLifecycle()
+    {
+      ClipperD engine = ClipperD.RentShared(3);
+      ClipperD nested = ClipperD.RentShared(3);
+      try
+      {
+        Assert.AreNotSame(engine, nested);
+        engine.PreserveCollinear = false;
+        engine.ReverseSolution = true;
+        engine.AddSubject(new RectD(0, 0, 10, 10).AsPath());
+        engine.AddOpenSubject(new PathD { new PointD(-10, 5), new PointD(20, 5) });
+      }
+      finally
+      {
+        ClipperD.ReturnShared(nested);
+        ClipperD.ReturnShared(engine);
+      }
+      ClipperD reused = ClipperD.RentShared(3);
+      try
+      {
+        Assert.AreSame(engine, reused);
+        Assert.IsTrue(reused.PreserveCollinear);
+        Assert.IsFalse(reused.ReverseSolution);
+        Assert.AreEqual(0, reused.ErrorCode());
+        PathsD closed = new PathsD(), open = new PathsD();
+        Assert.IsTrue(reused.Execute(ClipType.Union, FillRule.NonZero, closed, open));
+        Assert.AreEqual(0, closed.Count);
+        Assert.AreEqual(0, open.Count);
+        PathD large = new PathD((1 << 17) + 1);
+        for (int index = 0; index <= 1 << 17; index++)
+          large.Add(new PointD(index, index & 1));
+        reused.AddSubject(large);
+      }
+      finally
+      {
+        ClipperD.ReturnShared(reused);
+      }
+      ClipperD bounded = ClipperD.RentShared(3);
+      try { Assert.AreNotSame(reused, bounded); }
+      finally { ClipperD.ReturnShared(bounded); }
+    }
+
+    [TestMethod]
+    public void TestBooleanOpDoubleRecoversAfterException()
+    {
+      PathsD subject = new PathsD { new RectD(0.125, 0.125, 10.125, 10.125).AsPath() };
+      PathsD invalid = new PathsD { new PathD { new PointD(-1e30, -1e30),
+        new PointD(1e30, -1e30), new PointD(0, 1e30) } };
+      PolyTreeD tree = new PolyTreeD();
+      foreach (int precision in new[] { -9, 9, int.MinValue, int.MaxValue })
+      {
+        Clipper.Union(subject, FillRule.NonZero);
+        Assert.ThrowsException<Clipper2Exception>(() =>
+          Clipper.BooleanOp(ClipType.Union, FillRule.NonZero, subject, null, precision));
+        Assert.ThrowsException<Clipper2Exception>(() =>
+          Clipper.BooleanOp(ClipType.Union, FillRule.NonZero, subject, null, tree, precision));
+      }
+      for (int repeat = 0; repeat < 2; repeat++)
+      {
+        Assert.ThrowsException<Clipper2Exception>(() =>
+          Clipper.BooleanOp(ClipType.Union, FillRule.NonZero, subject, invalid));
+        Assert.ThrowsException<Clipper2Exception>(() =>
+          Clipper.BooleanOp(ClipType.Union, FillRule.NonZero, subject, invalid, tree));
+        PathsD result = Clipper.Union(subject, FillRule.NonZero);
+        Assert.AreEqual(1, result.Count);
+        Assert.AreEqual(100.0, Clipper.Area(result));
+        Assert.AreEqual(0, Clipper.Union(new PathsD(), FillRule.NonZero).Count);
+      }
+    }
+
+    [TestMethod]
+    public void TestBooleanOpDoubleConcurrentCalls()
+    {
+      Parallel.For(0, 128, iteration =>
+      {
+        int precision = iteration % 17 - 8;
+        PathsD subject = new PathsD {
+          new RectD(iteration + 0.125, -3.625, iteration + 18.375, 20.875).AsPath() };
+        ClipperD fresh = new ClipperD(precision);
+        fresh.AddSubject(subject);
+        PathsD expected = new PathsD();
+        fresh.Execute(ClipType.Union, FillRule.NonZero, expected);
+        for (int repeat = 0; repeat < 4; repeat++)
+        {
+          PathsD actual = Clipper.BooleanOp(ClipType.Union, FillRule.NonZero, subject, null, precision);
+          Assert.AreEqual(expected.Count, actual.Count);
+          for (int index = 0; index < expected.Count; index++)
+            CollectionAssert.AreEqual(expected[index], actual[index]);
+        }
+      });
+    }
+
+    [TestMethod]
+    public void TestBooleanOpDoubleReusesBuffers()
+    {
+      PathsD subject = new PathsD { new RectD(0, 0, 10, 10).AsPath() };
+      Func<PathsD> fresh = () =>
+      {
+        ClipperD engine = new ClipperD();
+        engine.AddSubject(subject);
+        PathsD result = new PathsD();
+        engine.Execute(ClipType.Union, FillRule.NonZero, result);
+        return result;
+      };
+      Func<PathsD> shared = () => Clipper.BooleanOp(ClipType.Union, FillRule.NonZero, subject, null);
+      for (int repeat = 0; repeat < 10; repeat++) { fresh(); shared(); }
+      long Allocated(Func<PathsD> run)
+      {
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        for (int repeat = 0; repeat < 200; repeat++) run();
+        return GC.GetAllocatedBytesForCurrentThread() - before;
+      }
+      long freshBytes = Allocated(fresh), sharedBytes = Allocated(shared);
+      Assert.IsTrue(sharedBytes * 2 < freshBytes,
+        $"Expected buffer reuse: fresh {freshBytes} bytes, shared {sharedBytes} bytes");
+    }
+
     [TestMethod]
     public void TestBooleanOpLegacyTreeOrder()
     {

@@ -14,6 +14,40 @@ void AddPaths(Paths64 ps) { Add(ps.Count); foreach (Path64 p in ps) { Add(p.Coun
 void AddPathsD(PathsD ps) { Add(ps.Count); foreach (PathD p in ps) { Add(p.Count); foreach (PointD pt in p) { Add(BitConverter.DoubleToInt64Bits(pt.x)); Add(BitConverter.DoubleToInt64Bits(pt.y)); Add(pt.z); } } }
 void AddTree(PolyPath64 pp) { Add(pp.Count); if (pp.Polygon != null) AddPaths(new Paths64 { pp.Polygon }); for (int i = 0; i < pp.Count; i++) AddTree(pp[i]); }
 
+void CheckPathD(PathD expected, PathD actual)
+{
+  if (expected.Count != actual.Count) throw new InvalidOperationException("Shared ClipperD point count differs");
+  for (int index = 0; index < expected.Count; index++)
+    if (BitConverter.DoubleToInt64Bits(expected[index].x) != BitConverter.DoubleToInt64Bits(actual[index].x) ||
+      BitConverter.DoubleToInt64Bits(expected[index].y) != BitConverter.DoubleToInt64Bits(actual[index].y) ||
+      expected[index].z != actual[index].z)
+      throw new InvalidOperationException("Shared ClipperD coordinates differ");
+}
+
+void CheckTreeD(PolyPathD expected, PolyPathD actual)
+{
+  if (expected.Count != actual.Count || (expected.Polygon == null) != (actual.Polygon == null))
+    throw new InvalidOperationException("Shared ClipperD tree differs");
+  if (expected.Polygon != null) CheckPathD(expected.Polygon, actual.Polygon!);
+  for (int index = 0; index < expected.Count; index++) CheckTreeD(expected[index], actual[index]);
+}
+
+void CheckSharedD(PathsD subject, PathsD clip, ClipType clipType, FillRule fillRule, int precision)
+{
+  ClipperD fresh = new ClipperD(precision);
+  fresh.AddSubject(subject);
+  fresh.AddClip(clip);
+  PathsD expected = new PathsD();
+  fresh.Execute(clipType, fillRule, expected);
+  PathsD actual = Clipper.BooleanOp(clipType, fillRule, subject, clip, precision);
+  if (expected.Count != actual.Count) throw new InvalidOperationException("Shared ClipperD path count differs");
+  for (int index = 0; index < expected.Count; index++) CheckPathD(expected[index], actual[index]);
+  PolyTreeD expectedTree = new PolyTreeD(), actualTree = new PolyTreeD();
+  fresh.Execute(clipType, fillRule, expectedTree);
+  Clipper.BooleanOp(clipType, fillRule, subject, clip, actualTree, precision);
+  CheckTreeD(expectedTree, actualTree);
+}
+
 Paths64 Rand(Random r, int count, int pts, long rad, long zBase)
 {
   Paths64 res = new Paths64();
@@ -34,6 +68,10 @@ for (int seed = 0; seed < 1500; seed++)
   long rad = (seed % 3) switch { 0 => 12, 1 => 1000, _ => 100000 };
   Paths64 s = Rand(r, r.Next(1, 4), r.Next(3, 25), rad, 1);
   Paths64 c = Rand(r, r.Next(1, 3), r.Next(3, 25), rad, 500000);
+  PathsD subjectD = Clipper.ScalePathsD(s, 0.01), clipD = Clipper.ScalePathsD(c, 0.01);
+  int precision = seed % 5 - 2;
+  CheckSharedD(subjectD, clipD, (ClipType) (1 + seed % 4), (FillRule) (seed % 4), precision);
+  CheckSharedD(subjectD, clipD, ClipType.Union, FillRule.NonZero, precision);
   Clipper64 cl = new Clipper64();
   cl.DefaultZ = -7;
   cl.SetZCallback((Point64 b1, Point64 t1, Point64 b2, Point64 t2, ref Point64 ip) =>

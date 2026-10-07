@@ -3667,8 +3667,34 @@ namespace Clipper2Lib
 
   public class ClipperD : ClipperBase
   {
+    [ThreadStatic] private static ClipperD? t_shared;
+    private const int SharedPoolLimit = 1 << 17;
+    private readonly int _precision;
     private readonly double _scale = 1.0;
     private readonly double _invScale = 1.0;
+
+    internal static ClipperD RentShared(int precision)
+    {
+      ClipperD? engine = t_shared;
+      t_shared = null;
+      return engine != null && engine._precision == precision ? engine : new ClipperD(precision);
+    }
+
+    internal static void ReturnShared(ClipperD engine)
+    {
+      engine.Clear();
+      if (engine.PooledObjectCount > SharedPoolLimit) return;
+      engine._errorCode = 0;
+      engine._succeeded = true;
+      engine.PreserveCollinear = true;
+      engine.ReverseSolution = false;
+#if USINGZ
+      engine._zCallbackD = null;
+      engine._zCallback = null;
+      engine.DefaultZ = 0;
+#endif
+      t_shared = engine;
+    }
 
 #if USINGZ
     public delegate void ZCallbackD(PointD bot1, PointD top1,
@@ -3708,6 +3734,7 @@ namespace Clipper2Lib
     public ClipperD(int precision = 2)
     {
       InternalClipper.CheckPrecisionRange(ref precision, ref _errorCode);
+      _precision = precision;
       // to optimize scaling / descaling precision
       // set the scale to a power of double's radix (2) (#25)
       _scale = Math.Pow(2.0, Math.ILogB(Math.Pow(10, precision)) + 1);

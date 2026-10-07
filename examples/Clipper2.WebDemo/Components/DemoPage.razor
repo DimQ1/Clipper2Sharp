@@ -70,7 +70,7 @@
     </label>
     <label>
       @T("fillRule")
-      <select @bind="_fillRule">
+      <select @bind="_fillRule" @bind:after="Measure">
         @foreach (FillRule rule in Enum.GetValues<FillRule>())
         {
           <option value="@rule">@rule</option>

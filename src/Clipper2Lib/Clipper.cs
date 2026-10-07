@@ -137,11 +137,18 @@ namespace Clipper2Lib
       PathsD subject, PathsD? clip, int precision = 2)
     {
       PathsD solution = new PathsD();
-      ClipperD c = new ClipperD(precision);
-      c.AddSubject(subject);
-      if (clip != null && clip.Count > 0)
-        c.AddClip(clip);
-      c.Execute(clipType, fillRule, solution);
+      ClipperD engine = ClipperD.RentShared(precision);
+      try
+      {
+        engine.AddSubject(subject);
+        if (clip != null && clip.Count > 0)
+          engine.AddClip(clip);
+        engine.Execute(clipType, fillRule, solution);
+      }
+      finally
+      {
+        ClipperD.ReturnShared(engine);
+      }
       return solution;
     }
 
@@ -149,11 +156,18 @@ namespace Clipper2Lib
       PathsD subject, PathsD? clip, PolyTreeD polytree, int precision = 2)
     {
       if (subject == null) return;
-      ClipperD c = new ClipperD(precision);
-      c.AddSubject(subject);
-      if (clip != null && clip.Count > 0)
-        c.AddClip(clip);
-      c.Execute(clipType, fillRule, polytree);
+      ClipperD engine = ClipperD.RentShared(precision);
+      try
+      {
+        engine.AddSubject(subject);
+        if (clip != null && clip.Count > 0)
+          engine.AddClip(clip);
+        engine.Execute(clipType, fillRule, polytree);
+      }
+      finally
+      {
+        ClipperD.ReturnShared(engine);
+      }
     }
 
     public static void BooleanOp(ClipType clipType, PathsD subject,

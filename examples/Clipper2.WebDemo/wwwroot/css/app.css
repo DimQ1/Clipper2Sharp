@@ -230,6 +230,14 @@ th {
   letter-spacing: 0.8px;
 }
 
+@media (max-width: 600px) {
+  table { table-layout: fixed; }
+  th, td {
+    padding: 7px 4px;
+    overflow-wrap: anywhere;
+  }
+}
+
 footer {
   display: flex;
   justify-content: space-between;

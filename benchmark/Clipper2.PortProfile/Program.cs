@@ -39,6 +39,8 @@ namespace Clipper2.PortProfile
         case "fidelity":
           return Fidelity(args.Length > 1 ? args[1] : FindRepoFile("Results", "fidelity-cpp.txt"),
             args.Length > 2 ? args[2] : null);
+        case "booldcompare":
+          return DoubleBooleanComparison(args.Length > 1 ? int.Parse(args[1]) : 10);
         default:
           return Workload(mode, args.Length > 1 ? int.Parse(args[1]) : 20);
       }
@@ -467,6 +469,92 @@ namespace Clipper2.PortProfile
     }
 
     // ------------------------------------------------------------------ workloads
+
+    private static int DoubleBooleanComparison(int reps)
+    {
+      if (reps < 1) throw new ArgumentOutOfRangeException(nameof(reps));
+      List<(PathsD Subject, PathsD Clip, ClipType Type, FillRule Rule)> small = new();
+      foreach (ClipType clipType in new[] { ClipType.Intersection, ClipType.Union,
+        ClipType.Difference, ClipType.Xor })
+        small.Add((new PathsD { new RectD(-12.125, -3.625, 18.375, 20.875).AsPath() },
+          new PathsD { new RectD(-5.125, 1.625, 9.375, 13.875).AsPath() },
+          clipType, FillRule.NonZero));
+
+      List<(PathsD Subject, PathsD Clip, ClipType Type, FillRule Rule)> corpus = new();
+      foreach (Case item in LoadCases(Data("Polygons.txt")))
+        corpus.Add((Clipper.ScalePathsD(item.Subj, 0.01),
+          Clipper.ScalePathsD(item.Clip, 0.01), item.Ct, item.Fr));
+
+      foreach (var (label, cases) in new[] { ("small", small), ("corpus", corpus) })
+      foreach (bool tree in new[] { false, true })
+      {
+        long Run(bool fresh, Hasher? hash = null)
+        {
+          long count = 0;
+          foreach (var item in cases)
+          {
+            ClipperD? engine = fresh ? new ClipperD(3) : null;
+            if (engine != null)
+            {
+              engine.AddSubject(item.Subject);
+              if (item.Clip.Count > 0) engine.AddClip(item.Clip);
+            }
+            if (tree)
+            {
+              PolyTreeD result = new PolyTreeD();
+              if (engine != null) engine.Execute(item.Type, item.Rule, result);
+              else Clipper.BooleanOp(item.Type, item.Rule, item.Subject, item.Clip, result, 3);
+              count += result.Count;
+              hash?.Add(result);
+            }
+            else
+            {
+              PathsD result;
+              if (engine != null)
+              {
+                result = new PathsD();
+                engine.Execute(item.Type, item.Rule, result);
+              }
+              else result = Clipper.BooleanOp(item.Type, item.Rule, item.Subject, item.Clip, 3);
+              count += result.Count;
+              hash?.Add(result);
+            }
+          }
+          return count;
+        }
+
+        Hasher expected = new Hasher(), actual = new Hasher();
+        Run(true, expected);
+        Run(false, actual);
+        if (expected.Value != actual.Value)
+          throw new InvalidOperationException($"PathsD mismatch: {label}, tree={tree}");
+        Stopwatch warm = Stopwatch.StartNew();
+        do { Run(true); Run(false); } while (warm.Elapsed.TotalMilliseconds < 700);
+        double[] best = { double.MaxValue, double.MaxValue };
+        double[] bytesPerOp = new double[2];
+        for (int round = 0; round < 6; round++)
+        for (int turn = 0; turn < 2; turn++)
+        {
+          int variant = (round + turn) % 2;
+          Stopwatch timer = new Stopwatch();
+          long bytes = GC.GetAllocatedBytesForCurrentThread();
+          int done = 0;
+          timer.Start();
+          do { Run(variant == 0); done++; }
+          while (done < reps || timer.Elapsed.TotalMilliseconds < 200);
+          timer.Stop();
+          bytes = GC.GetAllocatedBytesForCurrentThread() - bytes;
+          if (round == 0) continue;
+          best[variant] = Math.Min(best[variant], timer.Elapsed.TotalMilliseconds / (done * (double) cases.Count));
+          bytesPerOp[variant] = bytes / (done * (double) cases.Count);
+        }
+        Console.WriteLine($"boold {label} {(tree ? "tree" : "paths")}: hash {actual.Value}, " +
+          $"fresh {best[0]:0.000000} ms/op {bytesPerOp[0]:0} B/op, " +
+          $"static {best[1]:0.000000} ms/op {bytesPerOp[1]:0} B/op, " +
+          $"speedup {best[0] / best[1]:0.00}x");
+      }
+      return 0;
+    }
 
     private static int Workload(string mode, int reps)
     {

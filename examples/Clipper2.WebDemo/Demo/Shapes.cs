@@ -123,8 +123,8 @@ public static class Shapes
   /// <summary>The probe grid the point-in-polygon page draws.</summary>
   public static (long[] Xs, long[] Ys) ProbeGrid()
   {
-    int cols = (int) (WorldWidth / ProbeSpacing) + 1;
-    int rows = (int) (WorldHeight / ProbeSpacing) + 1;
+    int cols = (int) ((WorldWidth - 5) / ProbeSpacing) + 1;
+    int rows = (int) ((WorldHeight - 5) / ProbeSpacing) + 1;
     long[] xs = new long[cols * rows];
     long[] ys = new long[cols * rows];
     int n = 0;

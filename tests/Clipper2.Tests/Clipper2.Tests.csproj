@@ -23,4 +23,10 @@
     <None Include="TestData\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\..\examples\Clipper2.WebDemo\Demo\OpRunner.cs" Link="WebDemo\OpRunner.cs" />
+    <Compile Include="..\..\examples\Clipper2.WebDemo\Demo\Shapes.cs" Link="WebDemo\Shapes.cs" />
+    <Compile Include="..\..\examples\Clipper2.WebDemo\Demo\AllocationMeter.cs" Link="WebDemo\AllocationMeter.cs" />
+  </ItemGroup>
+
 </Project>

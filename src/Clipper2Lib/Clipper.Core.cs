@@ -1248,10 +1248,11 @@ namespace Clipper2Lib
       ref int errorCode)
     {
       Paths64 result = new Paths64();
-      if ((GetBounds(paths).left * scaleX) < min_coord ||
-        (GetBounds(paths).right * scaleX) > max_coord ||
-        (GetBounds(paths).top * scaleY) < min_coord ||
-        (GetBounds(paths).bottom * scaleY) > max_coord)
+      RectD bounds = GetBounds(paths);
+      if ((bounds.left * scaleX) < min_coord ||
+        (bounds.right * scaleX) > max_coord ||
+        (bounds.top * scaleY) < min_coord ||
+        (bounds.bottom * scaleY) > max_coord)
       {
         errorCode |= Clipper2Error.RangeError;
         DoError(Clipper2Error.RangeError);

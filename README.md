@@ -1,5 +1,12 @@
 # Clipper2Sharp
 
+[![NuGet](https://img.shields.io/nuget/v/Clipper2Sharp.svg)](https://www.nuget.org/packages/Clipper2Sharp)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/Clipper2Sharp.svg)](https://www.nuget.org/packages/Clipper2Sharp)
+[![CI](https://github.com/DimQ1/Clipper2Sharp/actions/workflows/ci.yml/badge.svg)](https://github.com/DimQ1/Clipper2Sharp/actions/workflows/ci.yml)
+[![NuGet Publish](https://github.com/DimQ1/Clipper2Sharp/actions/workflows/publish.yml/badge.svg)](https://github.com/DimQ1/Clipper2Sharp/actions/workflows/publish.yml)
+[![Demo](https://github.com/DimQ1/Clipper2Sharp/actions/workflows/pages.yml/badge.svg)](https://dimq1.github.io/Clipper2Sharp/)
+[![License: BSL-1.0](https://img.shields.io/badge/license-BSL--1.0-green.svg)](LICENSE)
+
 A from scratch **C# port of the Clipper2 C++ implementation (version 2.0.1)**.
 
 The public API is a drop-in match for the upstream C# port that ships with
@@ -101,16 +108,16 @@ use (`Tests/Polygons.txt` with 195 boolean cases, `Lines.txt`, `Offsets.txt`,
 `PolytreeHoleOwner*.txt`), plus ports of `TestRect`, `TestRectClip`,
 `TestSimplifyPath`, `TestTrimCollinear` and additional rect-clip, triangulation,
 Minkowski, sorter, multi-threaded-path, point locator, parallel boolean and
-reusable-data and BooleanOp compatibility tests: **37 tests per target framework,
+reusable-data, BooleanOp compatibility, engine-reuse and web-demo regression tests: **44 tests per target framework,
 all green on .NET 10 and .NET 11 Preview 4**.
 
 ## Packaging and CI
 
 The library ships as the **`Clipper2Sharp`** NuGet package (assembly and namespace
-stay `Clipper2Lib`, so it is a drop-in for the upstream C# port). Two GitHub Actions
+stay `Clipper2Lib`, so it is a drop-in for the upstream C# port). Three GitHub Actions
 workflows cover it:
 
-* `ci.yml` — on every push and pull request: build, the 37 tests on each framework, the
+* `ci.yml` — on every push and pull request: build, the 44 tests on each framework, the
   **bit-exactness gates** (`golden verify` on the whole corpus, `fidelity` against
   the C++ dump, the Z flavour's golden), `dotnet pack`, an inspection of the
   `.nupkg` (both `net10.0` and `net11.0` assemblies), and scratch projects that

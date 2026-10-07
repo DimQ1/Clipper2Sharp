@@ -174,15 +174,6 @@ public static class OpRunner
     Point64[] points = new Point64[count];
     for (int i = 0; i < count; i++) points[i] = new Point64(xs[i], ys[i]);
 
-    // inside means "inside an odd number of subject paths", i.e. the EvenOdd union
-    // of the subject - the same visual the other operations show
-    PointInPolygonResult[] hits = new PointInPolygonResult[count];
-    foreach (Path64 path in request.Subject)
-    {
-      if (path.Count < 3) continue;
-      Clipper.PointInPolygon(path, points, hits);
-    }
-
     // The locator exists for the case the plain scan is bad at: a dense polygon
     // asked about many points. The star above is only 14 vertices, so the same
     // question is asked again about a 2000 vertex circle, and both ways are timed.
@@ -205,13 +196,19 @@ public static class OpRunner
 
     List<Probe> probes = new(count);
     PointInPolygonResult[] final = new PointInPolygonResult[count];
-    foreach (Path64 path in request.Subject)
+    bool[] inside = new bool[count];
+    bool[] boundary = new bool[count];
+    foreach (Path64 path in Clipper.Union(request.Subject, request.FillRule))
     {
-      if (path.Count < 3) continue;
       Clipper.PointInPolygon(path, points, final);
+      for (int index = 0; index < count; index++)
+      {
+        if (final[index] == PointInPolygonResult.IsInside) inside[index] = !inside[index];
+        else if (final[index] == PointInPolygonResult.IsOn) boundary[index] = true;
+      }
     }
     for (int i = 0; i < count; i++)
-      probes.Add(new Probe(xs[i], ys[i], final[i] == PointInPolygonResult.IsInside));
+      probes.Add(new Probe(xs[i], ys[i], inside[i] || boundary[i]));
 
     outcome.Probes = probes;
     return new Paths64();
