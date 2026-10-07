@@ -7,8 +7,8 @@ namespace stay `Clipper2Lib`, so the package is a drop-in for the upstream C# po
 |---|---|
 | package id | `Clipper2Sharp` |
 | assembly / namespace | `Clipper2Lib` |
-| target framework | `net10.0` — one managed assembly: no P/Invoke, no native dependency, no `unsafe`, no NuGet dependencies. Runs on Windows, Linux and macOS (x64, arm64) and in the browser as WebAssembly |
-| version | `<Version>` in `Directory.Build.props` (currently `2.0.1`) |
+| target frameworks | `net10.0;net11.0` — managed assemblies with no P/Invoke, no native dependency, no `unsafe`, no NuGet dependencies. .NET 11 is currently preview; the WebAssembly demo remains on .NET 10. Building all targets requires the .NET 11 SDK. |
+| version | `<Version>` in `Directory.Build.props` (currently `2.0.2`) |
 | licence | `BSL-1.0` (the Clipper2 licence, `PackageLicenseExpression`) |
 | package readme | the repository `README.md`, packed as `README.md` |
 | symbols | `.snupkg`, published next to the package |
@@ -25,7 +25,7 @@ If the Z flavour should become its own package some day, it needs its own
 demand:
 
 1. restore and build **`Clipper2Sharp.Ci.slnx`** (see below) in Release,
-2. `dotnet test tests/Clipper2.Tests/Clipper2.Tests.csproj` (35 tests),
+2. `dotnet test tests/Clipper2.Tests/Clipper2.Tests.csproj` (37 tests on each target framework),
 3. the bit-exactness gates, which read committed files and therefore need no C++
    toolchain:
    * `PortProfile golden verify Results/golden-hashes.txt` — every coordinate,
@@ -33,9 +33,10 @@ demand:
    * `PortProfile fidelity Results/fidelity-cpp.txt` — the per case count/area dump
      of the 195 boolean and 2 offset cases against the C++ dump,
    * `PortProfileZ` — the same for the `USINGZ` flavour,
-4. `dotnet pack`, then it inspects the package (assembly + README must be in it) and
+4. `dotnet pack`, then it inspects the package (both assemblies + README must be in it) and
    consumes it: a scratch `dotnet new console` project adds the `.nupkg` from a local
-   folder source, calls `Clipper.Intersect` and checks the result,
+   folder source, calls `Clipper.Intersect` and the legacy-order tree `BooleanOp`,
+   and checks the result on .NET 10 and .NET 11,
 5. uploads the test report and the `.nupkg`/`.snupkg` as artifacts.
 
 `.github/workflows/publish.yml` — on a `v*` tag (and on demand, see *Dry run*):

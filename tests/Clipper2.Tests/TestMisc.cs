@@ -12,6 +12,56 @@ namespace Clipper2Lib.UnitTests
   public class TestMisc
   {
     [TestMethod]
+    public void TestBooleanOpLegacyTreeOrder()
+    {
+      Paths64 subject = new Paths64 { new Rect64(0, 0, 100, 100).AsPath() };
+      Paths64 clip = new Paths64 { new Rect64(25, 25, 75, 75).AsPath() };
+      foreach (ClipType clipType in new[] { ClipType.Intersection, ClipType.Union,
+        ClipType.Difference, ClipType.Xor })
+      foreach (FillRule fillRule in Enum.GetValues<FillRule>())
+      foreach (Paths64? clips in new Paths64?[] { clip, null, new Paths64() })
+      {
+        PolyTree64 expected = new PolyTree64();
+        PolyTree64 actual = new PolyTree64();
+        Clipper.BooleanOp(clipType, fillRule, subject, clips, expected);
+        Clipper.BooleanOp(clipType, subject, clips, actual, fillRule);
+        Paths64 expectedPaths = Clipper.PolyTreeToPaths64(expected);
+        Paths64 actualPaths = Clipper.PolyTreeToPaths64(actual);
+        Assert.AreEqual(expected.Count, actual.Count);
+        Assert.AreEqual(expectedPaths.Count, actualPaths.Count);
+        for (int index = 0; index < expectedPaths.Count; index++)
+          CollectionAssert.AreEqual(expectedPaths[index], actualPaths[index]);
+      }
+    }
+
+    [TestMethod]
+    public void TestBooleanOpLegacyTreeOrderDouble()
+    {
+      PathsD subject = new PathsD { new RectD(0.125, 0.125, 10.125, 10.125).AsPath() };
+      PathsD clip = new PathsD { new RectD(2.625, 2.625, 7.625, 7.625).AsPath() };
+      foreach (int precision in new[] { 2, 3 })
+      foreach (ClipType clipType in new[] { ClipType.Intersection, ClipType.Union,
+        ClipType.Difference, ClipType.Xor })
+      foreach (FillRule fillRule in Enum.GetValues<FillRule>())
+      foreach (PathsD? clips in new PathsD?[] { clip, null, new PathsD() })
+      {
+        PolyTreeD expected = new PolyTreeD();
+        PolyTreeD actual = new PolyTreeD();
+        Clipper.BooleanOp(clipType, fillRule, subject, clips, expected, precision);
+        if (precision == 2)
+          Clipper.BooleanOp(clipType, subject, clips, actual, fillRule);
+        else
+          Clipper.BooleanOp(clipType, subject, clips, actual, fillRule, precision);
+        PathsD expectedPaths = Clipper.PolyTreeToPathsD(expected);
+        PathsD actualPaths = Clipper.PolyTreeToPathsD(actual);
+        Assert.AreEqual(expected.Count, actual.Count);
+        Assert.AreEqual(expectedPaths.Count, actualPaths.Count);
+        for (int index = 0; index < expectedPaths.Count; index++)
+          CollectionAssert.AreEqual(expectedPaths[index], actualPaths[index]);
+      }
+    }
+
+    [TestMethod]
     public void TestRectOpPlus()
     {
       {

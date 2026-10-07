@@ -10,7 +10,8 @@ sources (`clipper.engine.cpp`, `clipper.offset.cpp`, `clipper.rectclip.cpp`,
 `clipper.triangulation.cpp`, `clipper.core.h`, `clipper.h`), not of the older
 C# 2.0.0 code.
 
-* Target framework: **.NET 10**
+* Library target frameworks: **.NET 10 and .NET 11** (currently preview).
+  Building all targets requires the .NET 11 SDK; examples remain on .NET 10.
 * Solution file: **`Clipper2Sharp.slnx`** (the XML solution format)
 * **100 % managed C#**: one assembly (`Clipper2Lib.dll`), **no P/Invoke and no
   native library**, no `unsafe` code (only the portable
@@ -56,6 +57,17 @@ docs/                   porting notes, optimisation plan
 
 ## Build, test, run
 
+Both tree-producing `BooleanOp` argument orders are supported for `Paths64` /
+`PolyTree64` and `PathsD` / `PolyTreeD`:
+
+```csharp
+Clipper.BooleanOp(ClipType.Difference, subject, clip, tree, FillRule.NonZero);
+Clipper.BooleanOp(ClipType.Difference, FillRule.NonZero, subject, clip, tree);
+```
+
+The `PathsD` overloads accept an optional final `precision` argument (default 2).
+The compatibility overloads forward to the same implementation.
+
 ```powershell
 dotnet build Clipper2Sharp.slnx
 dotnet test  tests/Clipper2.Tests/Clipper2.Tests.csproj
@@ -89,7 +101,8 @@ use (`Tests/Polygons.txt` with 195 boolean cases, `Lines.txt`, `Offsets.txt`,
 `PolytreeHoleOwner*.txt`), plus ports of `TestRect`, `TestRectClip`,
 `TestSimplifyPath`, `TestTrimCollinear` and additional rect-clip, triangulation,
 Minkowski, sorter, multi-threaded-path, point locator, parallel boolean and
-reusable-data tests: **35 tests, all green**.
+reusable-data and BooleanOp compatibility tests: **37 tests per target framework,
+all green on .NET 10 and .NET 11 Preview 4**.
 
 ## Packaging and CI
 
@@ -97,10 +110,11 @@ The library ships as the **`Clipper2Sharp`** NuGet package (assembly and namespa
 stay `Clipper2Lib`, so it is a drop-in for the upstream C# port). Two GitHub Actions
 workflows cover it:
 
-* `ci.yml` — on every push and pull request: build, the 35 tests, the
+* `ci.yml` — on every push and pull request: build, the 37 tests on each framework, the
   **bit-exactness gates** (`golden verify` on the whole corpus, `fidelity` against
   the C++ dump, the Z flavour's golden), `dotnet pack`, an inspection of the
-  `.nupkg`, and a scratch project that consumes the package and calls it;
+  `.nupkg` (both `net10.0` and `net11.0` assemblies), and scratch projects that
+  consume the package and call the compatible `BooleanOp` on both frameworks;
 * `publish.yml` — on a `v*` tag: the same gates, then push to nuget.org, using
   trusted publishing (OIDC, keyless) or a `NUGET_API_KEY` secret.
 * `pages.yml` — on a change to the demo or the library: build

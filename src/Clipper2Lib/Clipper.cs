@@ -127,6 +127,12 @@ namespace Clipper2Lib
       }
     }
 
+    public static void BooleanOp(ClipType clipType, Paths64 subject,
+      Paths64? clip, PolyTree64 tree, FillRule fillRule)
+    {
+      BooleanOp(clipType, fillRule, subject, clip, tree);
+    }
+
     public static PathsD BooleanOp(ClipType clipType, FillRule fillRule,
       PathsD subject, PathsD? clip, int precision = 2)
     {
@@ -148,6 +154,12 @@ namespace Clipper2Lib
       if (clip != null && clip.Count > 0)
         c.AddClip(clip);
       c.Execute(clipType, fillRule, polytree);
+    }
+
+    public static void BooleanOp(ClipType clipType, PathsD subject,
+      PathsD? clip, PolyTreeD tree, FillRule fillRule, int precision = 2)
+    {
+      BooleanOp(clipType, fillRule, subject, clip, tree, precision);
     }
 
     // Offsetting ----------------------------------------------------------------

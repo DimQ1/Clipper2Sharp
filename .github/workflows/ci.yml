@@ -45,6 +45,12 @@ jobs:
             **/*.csproj
             Directory.Build.props
 
+      - name: Setup .NET 11 Preview
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '11.0.x'
+          dotnet-quality: preview
+
       - name: Restore
         run: dotnet restore "$SOLUTION"
 
@@ -56,7 +62,7 @@ jobs:
           dotnet test "$TEST_PROJECT" \
             -c "$CONFIGURATION" \
             --no-build \
-            --logger "trx;LogFileName=clipper2-tests.trx" \
+            --logger "trx;LogFilePrefix=clipper2-tests" \
             --results-directory "$GITHUB_WORKSPACE/artifacts/test-results"
 
       # The bit-exactness gates. Both read files in Results/, so they need no C++
@@ -85,13 +91,15 @@ jobs:
           echo "package: $nupkg"
           unzip -l "$nupkg"
           unzip -l "$nupkg" | grep -q 'lib/net10.0/Clipper2Lib.dll' || { echo "::error::the package has no net10.0 assembly"; exit 1; }
+          unzip -l "$nupkg" | grep -q 'lib/net11.0/Clipper2Lib.dll' || { echo "::error::the package has no net11.0 assembly"; exit 1; }
           unzip -l "$nupkg" | grep -q 'README.md' || { echo "::error::the package has no README"; exit 1; }
 
       - name: Smoke-test the package
         run: |
           set -euo pipefail
-          proj="$RUNNER_TEMP/pkgtest"
-          dotnet new console -o "$proj" -f net10.0
+          for framework in net10.0 net11.0; do
+          proj="$RUNNER_TEMP/pkgtest-$framework"
+          dotnet new console -o "$proj" -f "$framework"
           dotnet add "$proj" package Clipper2Sharp \
             --source "$GITHUB_WORKSPACE/artifacts/packages" \
             --prerelease
@@ -107,10 +115,14 @@ jobs:
             '  Console.Error.WriteLine($"expected 1 path, got {result.Count}");' \
             '  return 1;' \
             '}' \
+            'PolyTree64 tree = new();' \
+            'Clipper.BooleanOp(ClipType.Intersection, subject, clip, tree, FillRule.NonZero);' \
+            'if (tree.Count != 1 || Clipper.Area(Clipper.PolyTreeToPaths64(tree)) != Clipper.Area(result)) return 1;' \
             'Console.WriteLine($"package smoke test ok: {result.Count} path, area {Clipper.Area(result)}");' \
             'return 0;' \
             > "$proj/Program.cs"
           dotnet run --project "$proj" -c "$CONFIGURATION"
+          done
 
       - name: Upload the test report
         if: always()
