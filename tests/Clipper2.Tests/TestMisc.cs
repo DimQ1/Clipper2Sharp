@@ -16,6 +16,11 @@ namespace Clipper2Lib.UnitTests
     [TestMethod]
     public void TestWebDemoPointInPolygonFillRules()
     {
+      Assert.AreEqual("below timer resolution", OpRunner.FormatProbeSpeedup(10, 0));
+      Assert.AreEqual("below timer resolution", OpRunner.FormatProbeSpeedup(0, 10));
+      Assert.AreEqual("below timer resolution", OpRunner.FormatProbeSpeedup(0, 0));
+      Assert.AreEqual("2.0x scan / locator", OpRunner.FormatProbeSpeedup(20, 10));
+      Assert.AreEqual("0.5x scan / locator", OpRunner.FormatProbeSpeedup(10, 20));
       Paths64 subject = new Paths64 {
         Shapes.Rect(5, 5, 250, 250), Shapes.Rect(55, 55, 100, 100),
         Shapes.Rect(505, 5, 150, 150) };

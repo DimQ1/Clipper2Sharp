@@ -192,7 +192,7 @@ public static class OpRunner
     double locatorMs = denseLocatorTicks * 1000.0 / Stopwatch.Frequency;
     outcome.Note = $"{count} probes against a 2000 vertex circle: " +
                    $"vertex scan {scanMs:F3} ms, prepared locator {locatorMs:F3} ms (" +
-                   $"{(scanMs / Math.Max(locatorMs, 1e-6)):F1}x faster)";
+                   FormatProbeSpeedup(denseScanTicks, denseLocatorTicks) + ")";
 
     List<Probe> probes = new(count);
     PointInPolygonResult[] final = new PointInPolygonResult[count];
@@ -213,6 +213,11 @@ public static class OpRunner
     outcome.Probes = probes;
     return new Paths64();
   }
+
+  internal static string FormatProbeSpeedup(long scanTicks, long locatorTicks) =>
+    scanTicks > 0 && locatorTicks > 0
+      ? FormattableString.Invariant($"{scanTicks / (double) locatorTicks:F1}x scan / locator")
+      : "below timer resolution";
 
   private static long CountVertices(Paths64 paths)
   {
