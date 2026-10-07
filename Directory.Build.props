@@ -20,9 +20,9 @@
     <Copyright>Copyright © Angus Johnson 2010-2025</Copyright>
     <PackageLicenseExpression>BSL-1.0</PackageLicenseExpression>
     <RepositoryType>git</RepositoryType>
-    <Version>2.0.3</Version>
-    <AssemblyVersion>2.0.3.0</AssemblyVersion>
-    <FileVersion>2.0.3.0</FileVersion>
+    <Version>2.0.4</Version>
+    <AssemblyVersion>2.0.4.0</AssemblyVersion>
+    <FileVersion>2.0.4.0</FileVersion>
   </PropertyGroup>
 
 </Project>

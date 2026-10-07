@@ -102,6 +102,103 @@ namespace Clipper2Lib.UnitTests
     }
 
     [TestMethod]
+    public void TestClipperDDirectInputMatchesScaled64()
+    {
+      PathsD subject = new PathsD {
+        new RectD(-12.125, -3.625, 18.375, 20.875).AsPath(),
+        new PathD { new PointD(-8.125, -8.125), new PointD(14.375, 16.875),
+          new PointD(-8.125, 16.875), new PointD(14.375, -8.125), new PointD(14.375, -8.125) },
+        new PathD(), new PathD { new PointD(0.125, 0.125) } };
+      PathsD clip = new PathsD { new RectD(-5.125, 1.625, 9.375, 13.875).AsPath() };
+      PathsD open = new PathsD { new PathD { new PointD(-25.125, 5.625),
+        new PointD(0.125, 5.625), new PointD(25.375, 5.625) } };
+      for (int precision = -8; precision <= 8; precision++)
+      foreach (ClipType clipType in Enum.GetValues<ClipType>())
+      foreach (FillRule fillRule in Enum.GetValues<FillRule>())
+      {
+        double scale = Math.Pow(2, Math.ILogB(Math.Pow(10, precision)) + 1);
+        int errorCode = 0;
+        ClipperD expected = new ClipperD(precision) { PreserveCollinear = (precision & 1) == 0,
+          ReverseSolution = (precision & 2) == 0 };
+        expected.AddPaths(InternalClipper.ScalePaths(subject, scale, ref errorCode), PathType.Subject, false);
+        expected.AddPaths(InternalClipper.ScalePaths(clip, scale, ref errorCode), PathType.Clip, false);
+        expected.AddPaths(InternalClipper.ScalePaths(open, scale, ref errorCode), PathType.Subject, true);
+        ClipperD actual = new ClipperD(precision) { PreserveCollinear = expected.PreserveCollinear,
+          ReverseSolution = expected.ReverseSolution };
+        actual.AddSubject(subject);
+        actual.AddClip(clip);
+        actual.AddOpenSubject(open[0]);
+        PathsD closedExpected = new PathsD(), openExpected = new PathsD();
+        PathsD closedD = new PathsD(), openD = new PathsD();
+        Assert.AreEqual(expected.Execute(clipType, fillRule, closedExpected, openExpected),
+          actual.Execute(clipType, fillRule, closedD, openD));
+        void EqualPaths(PathsD scaled, PathsD doubles)
+        {
+          Assert.AreEqual(scaled.Count, doubles.Count);
+          for (int index = 0; index < scaled.Count; index++)
+            CollectionAssert.AreEqual(scaled[index], doubles[index]);
+        }
+        EqualPaths(closedExpected, closedD);
+        EqualPaths(openExpected, openD);
+        PolyTreeD treeExpected = new PolyTreeD();
+        PolyTreeD treeD = new PolyTreeD();
+        Assert.AreEqual(expected.Execute(clipType, fillRule, treeExpected, openExpected),
+          actual.Execute(clipType, fillRule, treeD, openD));
+        void EqualTree(PolyPathD expectedNode, PolyPathD actualNode)
+        {
+          Assert.AreEqual(expectedNode.Count, actualNode.Count);
+          Assert.AreEqual(expectedNode.Polygon == null, actualNode.Polygon == null);
+          if (expectedNode.Polygon != null)
+            EqualPaths(new PathsD { expectedNode.Polygon }, new PathsD { actualNode.Polygon! });
+          for (int index = 0; index < expectedNode.Count; index++)
+            EqualTree(expectedNode[index], actualNode[index]);
+        }
+        EqualTree(treeExpected, treeD);
+        EqualPaths(openExpected, openD);
+      }
+    }
+
+    [TestMethod]
+    public void TestClipperDDirectInputAllocationAndRange()
+    {
+      PathsD subject = new PathsD { Clipper.Ellipse(new PointD(0, 0), 100, 100, 2000) };
+      ClipperD direct = new ClipperD(3);
+      Clipper64 legacy = new Clipper64();
+      double scale = Math.Pow(2, Math.ILogB(Math.Pow(10, 3)) + 1);
+      Action oldInput = () => {
+        int errorCode = 0;
+        legacy.AddSubject(InternalClipper.ScalePaths(subject, scale, ref errorCode));
+        legacy.Clear();
+      };
+      Action newInput = () => { direct.AddSubject(subject); direct.Clear(); };
+      for (int repeat = 0; repeat < 10; repeat++) { oldInput(); newInput(); }
+      long Allocated(Action run)
+      {
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        for (int repeat = 0; repeat < 50; repeat++) run();
+        return GC.GetAllocatedBytesForCurrentThread() - before;
+      }
+      long oldBytes = Allocated(oldInput), newBytes = Allocated(newInput);
+      Assert.IsTrue(newBytes * 10 < oldBytes,
+        $"Expected direct vertex input: old {oldBytes}, direct {newBytes}");
+      PathD valid = new RectD(0, 0, 10, 10).AsPath();
+      PathD invalid = new PathD { new PointD(-1e30, -1e30), new PointD(1e30, -1e30), new PointD(0, 1e30) };
+      direct.AddSubject(valid);
+      Assert.ThrowsException<Clipper2Exception>(() => direct.AddSubject(
+        new PathsD { new RectD(20, 0, 30, 10).AsPath(), invalid }));
+      Assert.ThrowsException<Clipper2Exception>(() => direct.AddSubject(invalid));
+      Assert.AreEqual(0, direct.ErrorCode());
+      PathsD result = new PathsD();
+      Assert.IsTrue(direct.Execute(ClipType.Union, FillRule.NonZero, result));
+      Assert.AreEqual(1, result.Count);
+      Assert.AreEqual(100.0, Clipper.Area(result));
+      direct.Clear();
+      direct.AddSubject(valid);
+      Assert.IsTrue(direct.Execute(ClipType.Union, FillRule.NonZero, result));
+      Assert.AreEqual(100.0, Clipper.Area(result));
+    }
+
+    [TestMethod]
     public void TestClipperDSharedEngineLifecycle()
     {
       ClipperD engine = ClipperD.RentShared(3);
@@ -771,6 +868,48 @@ namespace Clipper2Lib.UnitTests
         RectD b = Clipper.GetBounds(tree[0].Polygon!);
         Assert.AreEqual(10.5, b.right, 1e-9);
       }
+    }
+
+    [TestMethod]
+    public void TestPointInPolygonSmallBatchD()
+    {
+      PathD polygon = new RectD(-10.125, -5.625, 20.375, 15.875).AsPath();
+      PointD[] points = new PointD[16];
+      for (int index = 0; index < points.Length; index++)
+        points[index] = index < polygon.Count ? polygon[index] : new PointD(index - 6.125, index - 8.625);
+      foreach (PathD path in new[] { polygon, new PathD(), new PathD { points[0] } })
+      for (int precision = -8; precision <= 8; precision++)
+      foreach (int count in new[] { 0, 1, 2, 15, 16 })
+      {
+        PointInPolygonResult[] results = new PointInPolygonResult[18];
+        Array.Fill(results, PointInPolygonResult.IsOn);
+        Clipper.PointInPolygon(path, points.AsSpan(0, count), results, precision);
+        for (int index = 0; index < count; index++)
+          Assert.AreEqual(Clipper.PointInPolygon(points[index], path, precision), results[index]);
+        for (int index = count; index < results.Length; index++)
+          Assert.AreEqual(PointInPolygonResult.IsOn, results[index]);
+      }
+      Clipper.PointInPolygon(polygon, ReadOnlySpan<PointD>.Empty, Span<PointInPolygonResult>.Empty, 9);
+      Assert.ThrowsException<Clipper2Exception>(() => Clipper.PointInPolygon(polygon, points.AsSpan(0, 1), new PointInPolygonResult[1], 9));
+      Assert.ThrowsException<ArgumentException>(() => Clipper.PointInPolygon(polygon, points.AsSpan(0, 2), new PointInPolygonResult[1]));
+
+      PathD dense = Clipper.Ellipse(new PointD(0, 0), 100, 100, 2000);
+      PointInPolygonResult[] batch = new PointInPolygonResult[15];
+      Action scalar = () => {
+        for (int index = 0; index < batch.Length; index++)
+          batch[index] = Clipper.PointInPolygon(points[index], dense);
+      };
+      Action bulk = () => Clipper.PointInPolygon(dense, points.AsSpan(0, batch.Length), batch);
+      for (int repeat = 0; repeat < 10; repeat++) { scalar(); bulk(); }
+      long Allocated(Action run)
+      {
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        for (int repeat = 0; repeat < 50; repeat++) run();
+        return GC.GetAllocatedBytesForCurrentThread() - before;
+      }
+      long scalarBytes = Allocated(scalar), bulkBytes = Allocated(bulk);
+      Assert.IsTrue(bulkBytes * 10 < scalarBytes,
+        $"Expected one scaling per batch: scalar {scalarBytes}, bulk {bulkBytes}");
     }
 
     [TestMethod]

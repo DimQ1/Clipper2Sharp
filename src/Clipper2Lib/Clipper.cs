@@ -1084,8 +1084,12 @@ namespace Clipper2Lib
         throw new ArgumentException("results is shorter than points", nameof(results));
       if (points.Length < 16)
       {
+        if (points.IsEmpty) return;
+        InternalClipper.CheckPrecision(precision);
+        double scale = Math.Pow(10, precision);
+        Path64 path = ScalePath64(polygon, scale);
         for (int i = 0; i < points.Length; i++)
-          results[i] = PointInPolygon(points[i], polygon, precision);
+          results[i] = InternalClipper.PointInPolygon(new Point64(points[i], scale), path);
         return;
       }
       new PointInPolygonLocatorD(polygon, precision).Locate(points, results);

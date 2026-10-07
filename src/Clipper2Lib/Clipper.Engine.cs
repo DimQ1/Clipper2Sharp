@@ -336,8 +336,47 @@ namespace Clipper2Lib
     internal static void AddPaths_(Paths64 paths, PathType polytype, bool isOpen,
       VertexStore store, List<LocalMinima> locMinList)
     {
+      AddPaths_<Point64, Path64, IntegerVertex>(paths, polytype, isOpen, store, locMinList, default);
+    }
+
+    internal static void AddPaths_(PathsD paths, PathType polytype, bool isOpen,
+      VertexStore store, List<LocalMinima> locMinList, double scale)
+    {
+      AddPaths_<PointD, PathD, ScaledVertex>(paths, polytype, isOpen, store, locMinList, new ScaledVertex(scale));
+    }
+
+    private interface IVertexConverter<TPoint>
+    {
+      Point64 Convert(in TPoint point);
+    }
+
+    private readonly struct IntegerVertex : IVertexConverter<Point64>
+    {
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public Point64 Convert(in Point64 point) => point;
+    }
+
+    private readonly struct ScaledVertex : IVertexConverter<PointD>
+    {
+      private readonly double _scale;
+      public ScaledVertex(double scale) { _scale = scale; }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public Point64 Convert(in PointD point) => new Point64(point.x * _scale, point.y * _scale
+#if USINGZ
+        , point.z
+#endif
+      );
+    }
+
+    private static void AddPaths_<TPoint, TPath, TConverter>(List<TPath> paths,
+      PathType polytype, bool isOpen, VertexStore store, List<LocalMinima> locMinList,
+      TConverter converter)
+      where TPath : List<TPoint>
+      where TConverter : struct, IVertexConverter<TPoint>
+    {
       long totalVertexCount = 0;
-      foreach (Path64 path in paths) totalVertexCount += path.Count;
+      foreach (TPath path in paths) totalVertexCount += path.Count;
       if (totalVertexCount == 0) return;
       // nb: the batch size is known here, so the store is grown once. The count
       // must include the vertices already stored, because the same store
@@ -345,17 +384,17 @@ namespace Clipper2Lib
       store.EnsureCapacity(store.count + (int) totalVertexCount);
       Vertex[] vs = store.items; // stable below: the capacity is already there
 
-      foreach (Path64 path in paths)
+      foreach (TPath path in paths)
       {
         // for each path create a circular double linked list of vertices
         int v0 = -1, prevV = -1;
         int cnt = 0;
         if (path.Count == 0) continue;
 
-        Span<Point64> pts = CollectionsMarshal.AsSpan(path);
+        Span<TPoint> pts = CollectionsMarshal.AsSpan(path);
         for (int i = 0; i < pts.Length; i++)
         {
-          Point64 pt = pts[i];
+          Point64 pt = converter.Convert(in pts[i]);
           if (prevV >= 0 && vs[prevV].pt == pt) continue; // ie skips duplicates
           int currV = store.Add(pt, prevV);
           if (prevV >= 0) vs[prevV].next = currV;
@@ -818,6 +857,13 @@ namespace Clipper2Lib
       if (isOpen) _hasOpenPaths = true;
       _minimaListSorted = false;
       ClipperEngine.AddPaths_(paths, polytype, isOpen, _vertices, _minimaList);
+    }
+
+    internal void AddPathsScaled(PathsD paths, PathType polytype, bool isOpen, double scale)
+    {
+      if (isOpen) _hasOpenPaths = true;
+      _minimaListSorted = false;
+      ClipperEngine.AddPaths_(paths, polytype, isOpen, _vertices, _minimaList, scale);
     }
 
     public void AddReuseableData(ReuseableDataContainer64 reuseableData)
@@ -3741,22 +3787,22 @@ namespace Clipper2Lib
       _invScale = 1 / _scale;
     }
 
-    private Paths64 ScalePathsIn(PathsD paths)
-    {
-      int errorCode = 0;
-      Paths64 result = InternalClipper.ScalePaths(paths, _scale, ref errorCode);
-      _errorCode |= errorCode;
-      return result;
-    }
+    private PathsD? _singlePathD;
 
     public void AddPath(PathD path, PathType polytype, bool isOpen = false)
     {
-      AddPaths(ScalePathsIn(new PathsD { path }), polytype, isOpen);
+      PathsD paths = _singlePathD ??= new PathsD(1);
+      paths.Add(path);
+      try { AddPaths(paths, polytype, isOpen); }
+      finally { paths.Clear(); }
     }
 
     public void AddPaths(PathsD paths, PathType polytype, bool isOpen = false)
     {
-      AddPaths(ScalePathsIn(paths), polytype, isOpen);
+      int errorCode = 0;
+      bool valid = InternalClipper.CheckScaleRange(paths, _scale, _scale, ref errorCode);
+      _errorCode |= errorCode;
+      if (valid) AddPathsScaled(paths, polytype, isOpen, _scale);
     }
 
     public void AddSubject(PathD path) { AddPath(path, PathType.Subject, false); }

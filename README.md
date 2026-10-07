@@ -108,7 +108,7 @@ use (`Tests/Polygons.txt` with 195 boolean cases, `Lines.txt`, `Offsets.txt`,
 `PolytreeHoleOwner*.txt`), plus ports of `TestRect`, `TestRectClip`,
 `TestSimplifyPath`, `TestTrimCollinear` and additional rect-clip, triangulation,
 Minkowski, sorter, multi-threaded-path, point locator, parallel boolean and
-reusable-data, BooleanOp compatibility, engine-reuse and web-demo regression tests: **44 tests per target framework,
+reusable-data, BooleanOp compatibility, engine-reuse and web-demo regression tests: **47 tests per target framework,
 all green on .NET 10 and .NET 11 Preview 4**.
 
 ## Packaging and CI
@@ -117,7 +117,7 @@ The library ships as the **`Clipper2Sharp`** NuGet package (assembly and namespa
 stay `Clipper2Lib`, so it is a drop-in for the upstream C# port). Three GitHub Actions
 workflows cover it:
 
-* `ci.yml` — on every push and pull request: build, the 44 tests on each framework, the
+* `ci.yml` — on every push and pull request: build, the 47 tests on each framework, the
   **bit-exactness gates** (`golden verify` on the whole corpus, `fidelity` against
   the C++ dump, the Z flavour's golden), `dotnet pack`, an inspection of the
   `.nupkg` (both `net10.0` and `net11.0` assemblies), and scratch projects that

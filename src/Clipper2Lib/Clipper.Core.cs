@@ -1248,6 +1248,16 @@ namespace Clipper2Lib
       ref int errorCode)
     {
       Paths64 result = new Paths64();
+      if (!CheckScaleRange(paths, scaleX, scaleY, ref errorCode)) return result;
+      result.Capacity = paths.Count;
+      foreach (PathD path in paths)
+        result.Add(ScalePath(path, scaleX, scaleY, ref errorCode));
+      return result;
+    }
+
+    internal static bool CheckScaleRange(PathsD paths, double scaleX, double scaleY,
+      ref int errorCode)
+    {
       RectD bounds = GetBounds(paths);
       if ((bounds.left * scaleX) < min_coord ||
         (bounds.right * scaleX) > max_coord ||
@@ -1256,13 +1266,9 @@ namespace Clipper2Lib
       {
         errorCode |= Clipper2Error.RangeError;
         DoError(Clipper2Error.RangeError);
-        return result; // empty paths
+        return false;
       }
-
-      result.Capacity = paths.Count;
-      foreach (PathD path in paths)
-        result.Add(ScalePath(path, scaleX, scaleY, ref errorCode));
-      return result;
+      return true;
     }
 
     internal static Paths64 ScalePaths(PathsD paths, double scale, ref int errorCode)

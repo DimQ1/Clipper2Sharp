@@ -41,6 +41,8 @@ namespace Clipper2.PortProfile
             args.Length > 2 ? args[2] : null);
         case "booldcompare":
           return DoubleBooleanComparison(args.Length > 1 ? int.Parse(args[1]) : 10);
+        case "pipdcompare":
+          return DoublePipComparison(args.Length > 1 ? int.Parse(args[1]) : 10);
         default:
           return Workload(mode, args.Length > 1 ? int.Parse(args[1]) : 20);
       }
@@ -528,29 +530,72 @@ namespace Clipper2.PortProfile
         Run(false, actual);
         if (expected.Value != actual.Value)
           throw new InvalidOperationException($"PathsD mismatch: {label}, tree={tree}");
-        Stopwatch warm = Stopwatch.StartNew();
-        do { Run(true); Run(false); } while (warm.Elapsed.TotalMilliseconds < 700);
-        double[] best = { double.MaxValue, double.MaxValue };
-        double[] bytesPerOp = new double[2];
-        for (int round = 0; round < 6; round++)
-        for (int turn = 0; turn < 2; turn++)
-        {
-          int variant = (round + turn) % 2;
-          Stopwatch timer = new Stopwatch();
-          long bytes = GC.GetAllocatedBytesForCurrentThread();
-          int done = 0;
-          timer.Start();
-          do { Run(variant == 0); done++; }
-          while (done < reps || timer.Elapsed.TotalMilliseconds < 200);
-          timer.Stop();
-          bytes = GC.GetAllocatedBytesForCurrentThread() - bytes;
-          if (round == 0) continue;
-          best[variant] = Math.Min(best[variant], timer.Elapsed.TotalMilliseconds / (done * (double) cases.Count));
-          bytesPerOp[variant] = bytes / (done * (double) cases.Count);
-        }
+        var (best, bytesPerOp) = MeasureAlternating(variant => Run(variant == 0), reps, cases.Count);
         Console.WriteLine($"boold {label} {(tree ? "tree" : "paths")}: hash {actual.Value}, " +
           $"fresh {best[0]:0.000000} ms/op {bytesPerOp[0]:0} B/op, " +
           $"static {best[1]:0.000000} ms/op {bytesPerOp[1]:0} B/op, " +
+          $"speedup {best[0] / best[1]:0.00}x");
+      }
+      return 0;
+    }
+
+    private static (double[] Time, double[] Bytes) MeasureAlternating(Action<int> run,
+      int reps, int operationsPerRun = 1)
+    {
+      if (reps < 1) throw new ArgumentOutOfRangeException(nameof(reps));
+      Stopwatch warm = Stopwatch.StartNew();
+      do { run(0); run(1); } while (warm.Elapsed.TotalMilliseconds < 700);
+      double[] best = { double.MaxValue, double.MaxValue };
+      double[] bytesPerOp = new double[2];
+      for (int round = 0; round < 6; round++)
+      for (int turn = 0; turn < 2; turn++)
+      {
+        int variant = (round + turn) % 2;
+        Stopwatch timer = new Stopwatch();
+        long bytes = GC.GetAllocatedBytesForCurrentThread();
+        int done = 0;
+        timer.Start();
+        do { run(variant); done++; }
+        while (done < reps || timer.Elapsed.TotalMilliseconds < 200);
+        timer.Stop();
+        bytes = GC.GetAllocatedBytesForCurrentThread() - bytes;
+        if (round == 0) continue;
+        best[variant] = Math.Min(best[variant], timer.Elapsed.TotalMilliseconds / (done * (double) operationsPerRun));
+        bytesPerOp[variant] = bytes / (done * (double) operationsPerRun);
+      }
+      return (best, bytesPerOp);
+    }
+
+    private static int DoublePipComparison(int reps)
+    {
+      foreach (int vertices in new[] { 64, 2000 })
+      foreach (int count in new[] { 1, 2, 15 })
+      {
+        PathD polygon = Clipper.Ellipse(new PointD(0, 0), 100, 100, vertices);
+        PointD[] probes = new PointD[count];
+        for (int index = 0; index < count; index++)
+          probes[index] = index == 0 ? polygon[0] : new PointD((index - 7) * 20, (index % 3 - 1) * 90);
+        PointInPolygonResult[] results = new PointInPolygonResult[count];
+        void Run(int variant)
+        {
+          if (variant == 0)
+            for (int index = 0; index < count; index++)
+              results[index] = Clipper.PointInPolygon(probes[index], polygon, 3);
+          else Clipper.PointInPolygon(polygon, probes, results, 3);
+        }
+        Run(0);
+        PointInPolygonResult[] expected = (PointInPolygonResult[]) results.Clone();
+        Run(1);
+        Hasher hash = new Hasher();
+        for (int index = 0; index < count; index++)
+        {
+          if (results[index] != expected[index]) throw new InvalidOperationException("PathsD PIP mismatch");
+          hash.Add((long) results[index]);
+        }
+        var (best, bytes) = MeasureAlternating(Run, reps);
+        Console.WriteLine($"pipd {vertices} vertices {count} probes: hash {hash.Value}, " +
+          $"scalar {best[0]:0.000000} ms/batch {bytes[0]:0} B/batch, " +
+          $"batch {best[1]:0.000000} ms/batch {bytes[1]:0} B/batch, " +
           $"speedup {best[0] / best[1]:0.00}x");
       }
       return 0;
