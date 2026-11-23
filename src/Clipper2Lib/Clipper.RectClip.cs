@@ -12,6 +12,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 #if USINGZ
 namespace Clipper2ZLib
@@ -74,8 +75,9 @@ namespace Clipper2Lib
         if (w.used > w.highWater) w.highWater = w.used;
         w.used = 0;
         w.scratch.Clear();
-        // don't keep a huge pool alive
-        if (w.pool.Count > 1 << 16) return;
+        // don't keep a huge pool alive: an idle thread would hold it for the
+        // rest of its life (2^14 out-points are under 1 MB)
+        if (w.pool.Count > 1 << 14) return;
         // drop the references into this batch's (now dead) state
         for (int i = 0; i < w.highWater; i++)
         {
@@ -508,7 +510,12 @@ namespace Clipper2Lib
       }
     }
 
-    protected void GetNextLocation(Path64 path, ref Location loc, ref int i, int highI)
+    protected void GetNextLocation(Path64 path, ref Location loc, ref int i, int highI) =>
+      NextLocation(CollectionsMarshal.AsSpan(path), ref loc, ref i, highI);
+
+    // nb: the scans below are the bulk of a clip; a span keeps one length check
+    // instead of re-reading the list's array and size on every access
+    private protected void NextLocation(ReadOnlySpan<Point64> path, ref Location loc, ref int i, int highI)
     {
       switch (loc)
       {
@@ -583,15 +590,16 @@ namespace Clipper2Lib
     {
       if (path.Count < 1)
         return;
+      ReadOnlySpan<Point64> pts = CollectionsMarshal.AsSpan(path);
 
       int highI = path.Count - 1;
       Location prev = Location.Inside, loc;
       Location crossingLoc = Location.Inside;
       Location firstCross = Location.Inside;
-      if (!GetLocation(rect_, path[highI], out loc))
+      if (!GetLocation(rect_, pts[highI], out loc))
       {
         int i = highI;
-        while (i > 0 && !GetLocation(rect_, path[i - 1], out prev))
+        while (i > 0 && !GetLocation(rect_, pts[i - 1], out prev))
           --i;
         if (i == 0)
         {
@@ -610,22 +618,22 @@ namespace Clipper2Lib
         prev = loc;
         Location crossingPrev = crossingLoc;
 
-        GetNextLocation(path, ref loc, ref ii, highI);
+        NextLocation(pts, ref loc, ref ii, highI);
 
         if (ii > highI) break;
         Point64 ip, ip2;
         Point64 prevPt = (ii > 0) ?
-          path[ii - 1] :
-          path[highI];
+          pts[ii - 1] :
+          pts[highI];
 
         crossingLoc = loc;
         if (!GetIntersection(rect_as_path_,
-          path[ii], prevPt, ref crossingLoc, out ip))
+          pts[ii], prevPt, ref crossingLoc, out ip))
         {
           // ie remaining outside
           if (crossingPrev == Location.Inside)
           {
-            bool isClockw = IsClockwise(prev, loc, prevPt, path[ii], rect_mp_);
+            bool isClockw = IsClockwise(prev, loc, prevPt, pts[ii], rect_mp_);
             do
             {
               start_locs_.Add(prev);
@@ -635,7 +643,7 @@ namespace Clipper2Lib
           }
           else if (prev != Location.Inside && prev != loc)
           {
-            bool isClockw = IsClockwise(prev, loc, prevPt, path[ii], rect_mp_);
+            bool isClockw = IsClockwise(prev, loc, prevPt, pts[ii], rect_mp_);
             do
             {
               AddCorner(ref prev, isClockw);
@@ -657,7 +665,7 @@ namespace Clipper2Lib
           }
           else if (prev != crossingLoc)
           {
-            bool isClockw = IsClockwise(prev, crossingLoc, prevPt, path[ii], rect_mp_);
+            bool isClockw = IsClockwise(prev, crossingLoc, prevPt, pts[ii], rect_mp_);
             do
             {
               AddCorner(ref prev, isClockw);
@@ -669,7 +677,7 @@ namespace Clipper2Lib
           // passing right through rect. 'ip' here will be the second
           // intersect pt but we'll also need the first intersect pt (ip2)
           loc = prev;
-          GetIntersection(rect_as_path_, prevPt, path[ii], ref loc, out ip2);
+          GetIntersection(rect_as_path_, prevPt, pts[ii], ref loc, out ip2);
           if (crossingPrev != Location.Inside && crossingPrev != loc) //579
             AddCorner(crossingPrev, loc);
 
@@ -683,8 +691,8 @@ namespace Clipper2Lib
           Add(ip2);
           if (ip == ip2)
           {
-            // it's very likely that path[i] is on rect
-            GetLocation(rect_, path[ii], out loc);
+            // it's very likely that pts[i] is on rect
+            GetLocation(rect_, pts[ii], out loc);
             AddCorner(crossingLoc, loc);
             crossingLoc = loc;
             continue;
@@ -1100,6 +1108,7 @@ namespace Clipper2Lib
     private void ExecuteInternalLines(Path64 path)
     {
       if (rect_.IsEmpty() || path.Count < 2) return;
+      ReadOnlySpan<Point64> pts = CollectionsMarshal.AsSpan(path);
 
       results_.Clear();
       start_locs_.Clear();
@@ -1108,9 +1117,9 @@ namespace Clipper2Lib
 
       Location prev = Location.Inside, loc;
       Location crossingLoc;
-      if (!GetLocation(rect_, path[0], out loc))
+      if (!GetLocation(rect_, pts[0], out loc))
       {
-        while (i <= highI && !GetLocation(rect_, path[i], out prev)) ++i;
+        while (i <= highI && !GetLocation(rect_, pts[i], out prev)) ++i;
         if (i > highI)
         {
           // all of path must be inside fRect
@@ -1120,20 +1129,20 @@ namespace Clipper2Lib
         if (prev == Location.Inside) loc = Location.Inside;
         i = 1;
       }
-      if (loc == Location.Inside) Add(path[0]);
+      if (loc == Location.Inside) Add(pts[0]);
 
       ///////////////////////////////////////////////////
       while (i <= highI)
       {
         prev = loc;
-        GetNextLocation(path, ref loc, ref i, highI);
+        NextLocation(pts, ref loc, ref i, highI);
         if (i > highI) break;
         Point64 ip, ip2;
-        Point64 prevPt = path[i - 1];
+        Point64 prevPt = pts[i - 1];
 
         crossingLoc = loc;
         if (!GetIntersection(rect_as_path_,
-          path[i], prevPt, ref crossingLoc, out ip))
+          pts[i], prevPt, ref crossingLoc, out ip))
         {
           // ie remaining outside
           ++i;
@@ -1153,7 +1162,7 @@ namespace Clipper2Lib
           // passing right through rect. 'ip' here will be the second
           // intersect pt but we'll also need the first intersect pt (ip2)
           crossingLoc = prev;
-          GetIntersection(rect_as_path_, prevPt, path[i], ref crossingLoc, out ip2);
+          GetIntersection(rect_as_path_, prevPt, pts[i], ref crossingLoc, out ip2);
           Add(ip2, true);
           Add(ip);
         }

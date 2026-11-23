@@ -205,10 +205,11 @@ namespace Clipper2Lib
 
     private static void AdoptChildren(PolyPathBase target, PolyPathBase source)
     {
+      if (source._childs == null) return;
       foreach (PolyPathBase child in source._childs)
       {
         child._parent = target;
-        target._childs.Add(child);
+        target.Childs.Add(child);
       }
       source._childs.Clear();
     }

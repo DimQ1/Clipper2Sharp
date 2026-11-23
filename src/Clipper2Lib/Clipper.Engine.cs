@@ -89,7 +89,7 @@ namespace Clipper2Lib
   /// </summary>
   // nb: explicit layout so that the fields read while walking the AEL/SEL
   // (positions, slope, links, top vertex) share the first 64 bytes of the
-  // element, and the two references sit together at the end
+  // element, and the one reference (the out-rec) sits at the end
   [StructLayout(LayoutKind.Explicit)]
   internal struct Active
   {
@@ -99,7 +99,7 @@ namespace Clipper2Lib
     private const int PtSize = 16;
 #endif
     private const int LinkBase = 16 + 2 * PtSize;
-    private const int RefBase = LinkBase + 48; // 8 byte aligned for the references
+    private const int RefBase = LinkBase + 48; // 8 byte aligned for the reference
 
     [FieldOffset(0)] public long currX;          // current (updated at every new scanline)
     [FieldOffset(8)] public double dx;
@@ -125,11 +125,21 @@ namespace Clipper2Lib
     [FieldOffset(LinkBase + 32)] public int windCount2;      // winding count of the opposite polytype
     [FieldOffset(LinkBase + 36)] public JoinWith joinWith;
     [FieldOffset(LinkBase + 40)] public bool isLeftBound;
+    // the local minimum at the bottom of the edge's 'bound' (also Vatti), held
+    // inline: its polytype and open flag are read on every AEL walk, and a
+    // minimum is identified by its vertex (a vertex starts at most one minimum)
+    [FieldOffset(LinkBase + 41)] public bool isOpen;
+    [FieldOffset(LinkBase + 42)] public byte polytype;    // PathType
+    [FieldOffset(LinkBase + 44)] public int localMinVertex;
     [FieldOffset(RefBase)] public OutRec? outrec;
-    [FieldOffset(RefBase + 8)] public LocalMinima? localMin; // the bottom of an edge 'bound' (also Vatti)
   }
 
-  internal class LocalMinima
+  /// <summary>
+  /// A local minimum: plain data in the minima list. The C++ compares minima by
+  /// pointer; a vertex starts at most one minimum (AddLocMin flags it), so the
+  /// vertex index identifies a minimum just as well.
+  /// </summary>
+  internal readonly struct LocalMinima
   {
     public readonly int vertex;   // vertex index in the owning VertexStore
     public readonly PathType polytype;
@@ -141,7 +151,6 @@ namespace Clipper2Lib
       this.polytype = polytype;
       this.isOpen = isOpen;
     }
-    // nb: instances are always compared by reference, mirroring the C++ pointer compare
   }
 
   internal readonly struct IntersectNode
@@ -214,7 +223,7 @@ namespace Clipper2Lib
     internal static bool IsHotEdge(in Active e) => e.outrec != null;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static bool IsOpen(in Active e) => e.localMin!.isOpen;
+    internal static bool IsOpen(in Active e) => e.isOpen;
 
     /*******************************************************************************
       *  Dx:                             0(90deg)                                    *
@@ -258,11 +267,11 @@ namespace Clipper2Lib
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static PathType GetPolyType(in Active e) => e.localMin!.polytype;
+    internal static PathType GetPolyType(in Active e) => (PathType) e.polytype;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static bool IsSamePolyType(in Active e1, in Active e2) =>
-      e1.localMin!.polytype == e2.localMin!.polytype;
+      e1.polytype == e2.polytype;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetDx(ref Active e)
@@ -630,6 +639,34 @@ namespace Clipper2Lib
     internal int PooledObjectCount =>
       _vertices.Capacity + _outrecPool.Capacity;
 
+    // the largest working list a cached engine keeps between operations
+    private const int KeptWorkingCapacity = 1 << 16;
+
+    /// <summary>
+    /// Called when a per thread engine goes back to its slot (RentShared): the
+    /// engine and its pools stay, but a working list that one exceptional
+    /// operation grew beyond KeptWorkingCapacity is released, so an idle thread
+    /// does not hold it for the rest of its life. Typical operations stay below
+    /// the limit and keep all their storage.
+    /// </summary>
+    internal void TrimWorkingStorage()
+    {
+      static void Trim<T>(List<T> list)
+      {
+        if (list.Capacity > KeptWorkingCapacity) { list.Clear(); list.Capacity = 0; }
+      }
+      Trim(_intersectNodes);
+      Trim(_horzSegList);
+      Trim(_horzJoinList);
+      Trim(_outrecList);
+      Trim(_minimaList);
+      if (_minimaSortBuffer != null && _minimaSortBuffer.Length > KeptWorkingCapacity) _minimaSortBuffer = null;
+      if (_horzSortBuffer != null && _horzSortBuffer.Length > KeptWorkingCapacity) _horzSortBuffer = null;
+      if (_pathScratchField != null && _pathScratchField.Capacity > KeptWorkingCapacity) _pathScratchField = null;
+      if (_pathScratchDField != null && _pathScratchDField.Capacity > KeptWorkingCapacity) _pathScratchDField = null;
+      if (_scanlineList.Capacity > KeptWorkingCapacity) _scanlineList = new ScanlineHeap(64);
+    }
+
     // An active is addressed by its *byte offset* in the arena (-1 == none): a
     // following link is then 'load + add', where an element index would need a
     // multiplication by the struct size in the middle of every pointer chase
@@ -838,7 +875,7 @@ namespace Clipper2Lib
 
     internal void AddPath(Path64 path, PathType polytype, bool isOpen)
     {
-      AddPaths(new Paths64 { path }, polytype, isOpen);
+      AddPathDirect(path, polytype, isOpen);
     }
 
     private Paths64? _singlePath;
@@ -850,6 +887,12 @@ namespace Clipper2Lib
       one.Add(path);
       try { AddPaths(one, polytype, isOpen); }
       finally { one.Clear(); }
+    }
+
+    /// <summary>Makes room for <paramref name="count"/> more vertices.</summary>
+    internal void ReserveVertices(int count)
+    {
+      _vertices.EnsureCapacity(_vertices.count + count);
     }
 
     internal void AddPaths(Paths64 paths, PathType polytype, bool isOpen)
@@ -903,9 +946,9 @@ namespace Clipper2Lib
       return _scanlineList.Pop(out y);
     }
 
-    private bool PopLocalMinima(long y, out LocalMinima? localMinima)
+    private bool PopLocalMinima(long y, out LocalMinima localMinima)
     {
-      localMinima = null;
+      localMinima = default;
       if (_currentLocMin == _minimaList.Count ||
         Vx(_minimaList[_currentLocMin].vertex).pt.Y != y) return false;
       localMinima = _minimaList[_currentLocMin++];
@@ -1178,7 +1221,7 @@ namespace Clipper2Lib
       long y = newcomer.bot.Y;
       bool newcomerIsLeft = newcomer.isLeftBound;
 
-      if (resident.bot.Y != y || Vx(resident.localMin!.vertex).pt.Y != y)
+      if (resident.bot.Y != y || Vx(resident.localMinVertex).pt.Y != y)
         return newcomer.isLeftBound;
       // resident must also have just been inserted
       else if (resident.isLeftBound != newcomerIsLeft)
@@ -1239,10 +1282,10 @@ namespace Clipper2Lib
     {
       // Add any local minima (if any) at BotY ...
       // nb: horizontal local minima edges should contain locMin.vertex.prev
-      while (PopLocalMinima(botY, out LocalMinima? localMinima))
+      while (PopLocalMinima(botY, out LocalMinima localMinima))
       {
         int leftBound, rightBound;
-        if ((Vx(localMinima!.vertex).flags & VertexFlags.OpenStart) != VertexFlags.Empty)
+        if ((Vx(localMinima.vertex).flags & VertexFlags.OpenStart) != VertexFlags.Empty)
         {
           leftBound = -1;
         }
@@ -1255,7 +1298,9 @@ namespace Clipper2Lib
           lb.windDx = -1;
           lb.vertexTop = Vx(localMinima.vertex).prev; // ie descending
           lb.top = Vx(lb.vertexTop).pt;
-          lb.localMin = localMinima;
+          lb.localMinVertex = localMinima.vertex;
+          lb.polytype = (byte) localMinima.polytype;
+          lb.isOpen = localMinima.isOpen;
           ClipperEngine.SetDx(ref lb);
         }
 
@@ -1272,7 +1317,9 @@ namespace Clipper2Lib
           rb.windDx = 1;
           rb.vertexTop = Vx(localMinima.vertex).next; // ie ascending
           rb.top = Vx(rb.vertexTop).pt;
-          rb.localMin = localMinima;
+          rb.localMinVertex = localMinima.vertex;
+          rb.polytype = (byte) localMinima.polytype;
+          rb.isOpen = localMinima.isOpen;
           ClipperEngine.SetDx(ref rb);
         }
 
@@ -2295,7 +2342,7 @@ namespace Clipper2Lib
       while (result >= 0)
       {
         ref Active r = ref A(result);
-        if (ReferenceEquals(r.localMin, ae.localMin)) return result;
+        if (r.localMinVertex == ae.localMinVertex) return result;
         else if (!ClipperEngine.IsHorizontal(r) && ae.bot != r.bot) result = -1;
         else result = r.nextInAEL;
       }
@@ -2303,7 +2350,7 @@ namespace Clipper2Lib
       while (result >= 0)
       {
         ref Active r = ref A(result);
-        if (ReferenceEquals(r.localMin, ae.localMin)) return result;
+        if (r.localMinVertex == ae.localMinVertex) return result;
         else if (!ClipperEngine.IsHorizontal(r) && ae.bot != r.bot) return -1;
         else result = r.prevInAEL;
       }
@@ -2339,7 +2386,7 @@ namespace Clipper2Lib
             if (!ClipperEngine.IsHotEdge(A(edgeC))) return;
             break;
           default:
-            if (A(edgeC).localMin!.polytype == PathType.Subject)
+            if (ClipperEngine.GetPolyType(A(edgeC)) == PathType.Subject)
               return;
             break;
         }
@@ -2374,8 +2421,8 @@ namespace Clipper2Lib
         }
 
         // horizontal edges can pass under open paths at a LocMins
-        else if (pt == Vx(A(edgeO).localMin!.vertex).pt &&
-          !IsOpenEnd(A(edgeO).localMin!.vertex))
+        else if (pt == Vx(A(edgeO).localMinVertex).pt &&
+          !IsOpenEnd(A(edgeO).localMinVertex))
         {
           // find the other side of the LocMin and
           // if it's 'hot' join up with it ...
@@ -2417,7 +2464,7 @@ namespace Clipper2Lib
       // UPDATE WINDING COUNTS...
 
       int oldE1WindCnt, oldE2WindCnt;
-      if (e1.localMin!.polytype == e2.localMin!.polytype)
+      if (ClipperEngine.IsSamePolyType(e1, e2))
       {
         if (_fillrule == FillRule.EvenOdd)
         {
@@ -2487,7 +2534,7 @@ namespace Clipper2Lib
       if (ClipperEngine.IsHotEdge(e1) && ClipperEngine.IsHotEdge(e2))
       {
         if ((oldE1WindCnt != 0 && oldE1WindCnt != 1) || (oldE2WindCnt != 0 && oldE2WindCnt != 1) ||
-          (e1.localMin.polytype != e2.localMin.polytype && _cliptype != ClipType.Xor))
+          (!ClipperEngine.IsSamePolyType(e1, e2) && _cliptype != ClipType.Xor))
         {
 #if USINGZ
           resultOp = AddLocalMaxPoly(e1i, e2i, pt);
@@ -2643,28 +2690,54 @@ namespace Clipper2Lib
       // nb: the arena slot is simply abandoned (it is recycled by the next operation)
     }
 
-    /// <summary>Returns true when the edges are still in X order at topY.</summary>
+    /// <summary>
+    /// Sets every edge's currX at topY and returns true when the edges are
+    /// still in X order. Only otherwise does the merge sort run, so only then
+    /// are the SEL links (a copy of the AEL links plus 'jump') written: a run of
+    /// ordered scanbeams - the common case - skips three stores per edge. The
+    /// SEL is not read before DoTopOfScanbeam resets it when nothing is copied.
+    /// </summary>
     private bool AdjustCurrXAndCopyToSEL(long topY)
     {
       int e = _actives;
-      _sel = e;
-      bool ordered = true;
       long lastX = long.MinValue;
+      while (e >= 0)
+      {
+        ref Active ae = ref A(e);
+        // it is safe to ignore 'joined' edges here because
+        // if necessary they will be split in IntersectEdges()
+        long x = ClipperEngine.TopX(ae, topY);
+        ae.currX = x;
+        if (x < lastX) break; // the first edge out of order
+        lastX = x;
+        e = ae.nextInAEL;
+      }
+      if (e < 0) return true;
+
+      // copy the links of the edges up to and including the first one out of
+      // order, then position and copy the rest
+      int stop = e;
+      for (int f = _actives; ; )
+      {
+        ref Active a = ref A(f);
+        a.prevInSEL = a.prevInAEL;
+        a.nextInSEL = a.nextInAEL;
+        a.jump = a.nextInSEL;
+        if (f == stop) break;
+        f = a.nextInAEL;
+      }
+      e = A(stop).nextInAEL;
       while (e >= 0)
       {
         ref Active ae = ref A(e);
         ae.prevInSEL = ae.prevInAEL;
         ae.nextInSEL = ae.nextInAEL;
         ae.jump = ae.nextInSEL;
-        // it is safe to ignore 'joined' edges here because
-        // if necessary they will be split in IntersectEdges()
-        long x = ClipperEngine.TopX(ae, topY);
-        ae.currX = x;
-        if (x < lastX) ordered = false;
-        lastX = x;
+        ae.currX = ClipperEngine.TopX(ae, topY);
         e = ae.nextInAEL;
       }
-      return ordered;
+      _sel = _actives;
+      return false;
     }
 
     private bool ExecuteInternal(ClipType ct, FillRule fillRule, bool usePolytrees)
@@ -3437,9 +3510,29 @@ namespace Clipper2Lib
       if (outrec.pts < 0 ||
         !BuildPath64(outrec.pts, _reverseSolution, false, _pathScratch))
         return false;
-      outrec.path = ExactCopy(_pathScratch);
-      outrec.bounds = InternalClipper.GetBounds(outrec.path);
+      outrec.bounds = InternalClipper.GetBounds(
+        (ReadOnlySpan<Point64>) CollectionsMarshal.AsSpan(_pathScratch));
+      if (_treePathsD != null)
+      {
+        // exactly the points PolyPathD.AddChild(Path64) would make
+        while (_treePathsD.Count <= outrec.idx) _treePathsD.Add(null);
+        _treePathsD[outrec.idx] = Clipper.ScalePathD(_pathScratch, _treeInvScale);
+      }
+      else
+        outrec.path = ExactCopy(_pathScratch);
       return true;
+    }
+
+    // set while BuildTreeD fills a plain PolyTreeD: the nodes then receive the
+    // de-scaled PathD at once (kept here by out-rec index), with no
+    // intermediate Path64 per polygon
+    private List<PathD?>? _treePathsD;
+    private double _treeInvScale;
+
+    private PolyPathBase AddTreeChild(PolyPathBase parent, OutRec outrec)
+    {
+      if (_treePathsD != null) return ((PolyPathD) parent).AddChild(_treePathsD[outrec.idx]!);
+      return parent.AddChild(outrec.path!);
     }
 
     private bool CheckSplitOwner(OutRec outrec, List<OutRec> splits)
@@ -3489,10 +3582,10 @@ namespace Clipper2Lib
       {
         if (outrec.owner.polypath == null)
           RecursiveCheckOwners(outrec.owner, polypath);
-        outrec.polypath = outrec.owner.polypath!.AddChild(outrec.path!);
+        outrec.polypath = AddTreeChild(outrec.owner.polypath!, outrec);
       }
       else
-        outrec.polypath = polypath.AddChild(outrec.path!);
+        outrec.polypath = AddTreeChild(polypath, outrec);
     }
 
     // Clipper64 / ClipperD support ---------------------------------------------
@@ -3510,9 +3603,11 @@ namespace Clipper2Lib
         OutRec outrec = _outrecList[i];
         if (outrec.pts < 0) continue;
 
-        if (solutionOpen != null && outrec.isOpen)
+        if (outrec.isOpen)
         {
-          if (BuildPath64(outrec.pts, _reverseSolution, true, _pathScratch))
+          // nb: a null list is passed by the overloads that discard open paths
+          if (solutionOpen != null &&
+            BuildPath64(outrec.pts, _reverseSolution, true, _pathScratch))
             solutionOpen.Add(ExactCopy(_pathScratch));
         }
         else
@@ -3526,10 +3621,10 @@ namespace Clipper2Lib
       }
     }
 
-    internal void BuildTree64(PolyPath64 polytree, Paths64 openPaths)
+    internal void BuildTree64(PolyPath64 polytree, Paths64? openPaths)
     {
       polytree.Clear();
-      openPaths.Clear();
+      openPaths?.Clear();
 
       // outrec_list_.size() is not static here because
       // CheckBounds below can indirectly add additional
@@ -3541,7 +3636,8 @@ namespace Clipper2Lib
 
         if (outrec.isOpen)
         {
-          if (BuildPath64(outrec.pts, _reverseSolution, true, _pathScratch))
+          if (openPaths != null &&
+            BuildPath64(outrec.pts, _reverseSolution, true, _pathScratch))
             openPaths.Add(ExactCopy(_pathScratch));
           continue;
         }
@@ -3564,9 +3660,10 @@ namespace Clipper2Lib
         OutRec outrec = _outrecList[i];
         if (outrec.pts < 0) continue;
 
-        if (solutionOpen != null && outrec.isOpen)
+        if (outrec.isOpen)
         {
-          if (BuildPathD(outrec.pts, _reverseSolution, true, _pathScratchD, invScale))
+          if (solutionOpen != null &&
+            BuildPathD(outrec.pts, _reverseSolution, true, _pathScratchD, invScale))
             solutionOpen.Add(ExactCopy(_pathScratchD));
         }
         else
@@ -3579,11 +3676,27 @@ namespace Clipper2Lib
       }
     }
 
-    internal void BuildTreeD(PolyPathD polytree, PathsD openPaths, double invScale)
+    internal void BuildTreeD(PolyPathD polytree, PathsD? openPaths, double invScale)
     {
       polytree.Clear();
-      openPaths.Clear();
+      openPaths?.Clear();
       polytree.Scale = invScale;
+      // nb: only for the library's own node types - a user type deriving from
+      // PolyTreeD may override AddChild(Path64), which must then still be called
+      _treePathsD = polytree.GetType() == typeof(PolyTreeD) ? new List<PathD?>(_outrecList.Count) : null;
+      _treeInvScale = invScale;
+      try
+      {
+        BuildTreeDCore(polytree, openPaths, invScale);
+      }
+      finally
+      {
+        _treePathsD = null;
+      }
+    }
+
+    private void BuildTreeDCore(PolyPathD polytree, PathsD? openPaths, double invScale)
+    {
 
       for (int i = 0; i < _outrecList.Count; ++i)
       {
@@ -3592,7 +3705,8 @@ namespace Clipper2Lib
 
         if (outrec.isOpen)
         {
-          if (BuildPathD(outrec.pts, _reverseSolution, true, _pathScratchD, invScale))
+          if (openPaths != null &&
+            BuildPathD(outrec.pts, _reverseSolution, true, _pathScratchD, invScale))
             openPaths.Add(ExactCopy(_pathScratchD));
           continue;
         }
@@ -3633,6 +3747,7 @@ namespace Clipper2Lib
     {
       c.Clear();
       if (c.PooledObjectCount > SharedPoolLimit) return;
+      c.TrimWorkingStorage();
       c.PreserveCollinear = true;
       c.ReverseSolution = false;
 #if USINGZ
@@ -3687,8 +3802,14 @@ namespace Clipper2Lib
 
     public bool Execute(ClipType clipType, FillRule fillRule, PolyTree64 polytree)
     {
-      Paths64 dummy = new Paths64();
-      return Execute(clipType, fillRule, polytree, dummy);
+      // nb: the open paths are dropped, so they are not even built
+      if (ExecuteInternal64(clipType, fillRule, true))
+      {
+        polytree.Clear();
+        BuildTree64(polytree, null);
+      }
+      CleanUp();
+      return _succeeded;
     }
 
     public bool Execute(ClipType clipType, FillRule fillRule,
@@ -3704,8 +3825,24 @@ namespace Clipper2Lib
 
     public bool Execute(ClipType clipType, FillRule fillRule, Paths64 solutionClosed)
     {
-      Paths64 dummy = new Paths64();
-      return Execute(clipType, fillRule, solutionClosed, dummy);
+      solutionClosed.Clear();
+      if (ExecuteInternal64(clipType, fillRule, false))
+        BuildPaths64(solutionClosed, null);
+      CleanUp();
+      return _succeeded;
+    }
+
+    /// <summary>
+    /// Execute(clipType, fillRule, solution) with the result de-scaled into
+    /// PathsD (what ScalePathsD(solution, invScale) would return).
+    /// </summary>
+    internal bool ExecuteD(ClipType clipType, FillRule fillRule, PathsD solutionClosed, double invScale)
+    {
+      solutionClosed.Clear();
+      if (ExecuteInternal64(clipType, fillRule, false))
+        BuildPathsD(solutionClosed, null, invScale);
+      CleanUp();
+      return _succeeded;
     }
   }
 
@@ -3715,21 +3852,42 @@ namespace Clipper2Lib
   {
     [ThreadStatic] private static ClipperD? t_shared;
     private const int SharedPoolLimit = 1 << 17;
-    private readonly int _precision;
-    private readonly double _scale = 1.0;
-    private readonly double _invScale = 1.0;
+    private int _precision;
+    private double _scale = 1.0;
+    private double _invScale = 1.0;
 
     internal static ClipperD RentShared(int precision)
     {
       ClipperD? engine = t_shared;
+      if (engine == null) return new ClipperD(precision);
       t_shared = null;
-      return engine != null && engine._precision == precision ? engine : new ClipperD(precision);
+      // nb: a precision is only a scale, so the cached engine (cleared when it
+      // was returned) is re-targeted instead of replaced - calls alternating
+      // between two precisions keep their pools. An out of range precision
+      // throws exactly as the constructor does.
+      if (engine._precision != precision)
+      {
+        int errorCode = 0;
+        InternalClipper.CheckPrecisionRange(ref precision, ref errorCode);
+        engine.SetPrecision(precision);
+      }
+      return engine;
+    }
+
+    private void SetPrecision(int precision)
+    {
+      _precision = precision;
+      // to optimize scaling / descaling precision
+      // set the scale to a power of double's radix (2) (#25)
+      _scale = Math.Pow(2.0, Math.ILogB(Math.Pow(10, precision)) + 1);
+      _invScale = 1 / _scale;
     }
 
     internal static void ReturnShared(ClipperD engine)
     {
       engine.Clear();
       if (engine.PooledObjectCount > SharedPoolLimit) return;
+      engine.TrimWorkingStorage();
       engine._errorCode = 0;
       engine._succeeded = true;
       engine.PreserveCollinear = true;
@@ -3780,11 +3938,7 @@ namespace Clipper2Lib
     public ClipperD(int precision = 2)
     {
       InternalClipper.CheckPrecisionRange(ref precision, ref _errorCode);
-      _precision = precision;
-      // to optimize scaling / descaling precision
-      // set the scale to a power of double's radix (2) (#25)
-      _scale = Math.Pow(2.0, Math.ILogB(Math.Pow(10, precision)) + 1);
-      _invScale = 1 / _scale;
+      SetPrecision(precision);
     }
 
     private PathsD? _singlePathD;
@@ -3826,8 +3980,15 @@ namespace Clipper2Lib
 
     public bool Execute(ClipType clipType, FillRule fillRule, PathsD solutionClosed)
     {
-      PathsD dummy = new PathsD();
-      return Execute(clipType, fillRule, solutionClosed, dummy);
+#if USINGZ
+      CheckCallback();
+#endif
+      // nb: the open paths are dropped, so they are not even built (and, as in
+      // the overload with an open path list, a failed run leaves the list as is)
+      if (ExecuteInternal64(clipType, fillRule, false))
+        BuildPathsD(solutionClosed, null, _invScale);
+      CleanUp();
+      return _succeeded;
     }
 
     public bool Execute(ClipType clipType, FillRule fillRule,
@@ -3849,8 +4010,17 @@ namespace Clipper2Lib
 
     public bool Execute(ClipType clipType, FillRule fillRule, PolyTreeD polytree)
     {
-      PathsD dummy = new PathsD();
-      return Execute(clipType, fillRule, polytree, dummy);
+#if USINGZ
+      CheckCallback();
+#endif
+      if (ExecuteInternal64(clipType, fillRule, true))
+      {
+        polytree.Clear();
+        polytree.Scale = _invScale;
+        BuildTreeD(polytree, null, _invScale);
+      }
+      CleanUp();
+      return _succeeded;
     }
   }
 
@@ -3864,11 +4034,17 @@ namespace Clipper2Lib
   public abstract class PolyPathBase : IEnumerable
   {
     internal PolyPathBase? _parent;
-    internal List<PolyPathBase> _childs = new List<PolyPathBase>();
+    // nb: created with the first child - most nodes of a tree are leaves, and
+    // an empty list per leaf is pure overhead
+    internal List<PolyPathBase>? _childs;
+
+    internal List<PolyPathBase> Childs => _childs ??= new List<PolyPathBase>();
+
+    private static readonly List<PolyPathBase> NoChilds = new List<PolyPathBase>();
 
     public IEnumerator GetEnumerator()
     {
-      return new NodeEnumerator(_childs);
+      return new NodeEnumerator(_childs ?? NoChilds);
     }
 
     private class NodeEnumerator : IEnumerator
@@ -3923,27 +4099,27 @@ namespace Clipper2Lib
       return lvl != 0 && (lvl & 1) == 0;
     }
 
-    public int Count => _childs.Count;
+    public int Count => _childs?.Count ?? 0;
 
     public abstract PolyPathBase AddChild(Path64 p);
 
     public void Clear()
     {
-      _childs.Clear();
+      _childs?.Clear();
     }
 
     internal string ToStringInternal(int idx, int level)
     {
       string result = "", padding = "", plural = "s";
-      if (_childs.Count == 1) plural = "";
+      if (Count == 1) plural = "";
       padding = padding.PadLeft(level * 2);
       if ((level & 1) == 0)
-        result += $"{padding}+- hole ({idx}) contains {_childs.Count} nested polygon{plural}.\n";
+        result += $"{padding}+- hole ({idx}) contains {Count} nested polygon{plural}.\n";
       else
-        result += $"{padding}+- polygon ({idx}) contains {_childs.Count} hole{plural}.\n";
+        result += $"{padding}+- polygon ({idx}) contains {Count} hole{plural}.\n";
 
       for (int i = 0; i < Count; i++)
-        if (_childs[i].Count > 0)
+        if (_childs![i].Count > 0)
           result += _childs[i].ToStringInternal(i, level + 1);
       return result;
     }
@@ -3952,10 +4128,10 @@ namespace Clipper2Lib
     {
       if (Level > 0) return ""; // only accept tree root
       string plural = "s";
-      if (_childs.Count == 1) plural = "";
-      string result = $"Polytree with {_childs.Count} polygon{plural}.\n";
+      if (Count == 1) plural = "";
+      string result = $"Polytree with {Count} polygon{plural}.\n";
       for (int i = 0; i < Count; i++)
-        if (_childs[i].Count > 0)
+        if (_childs![i].Count > 0)
           result += _childs[i].ToStringInternal(i, 1);
       return result + '\n';
     }
@@ -3971,7 +4147,7 @@ namespace Clipper2Lib
     {
       PolyPathBase newChild = new PolyPath64(this);
       (newChild as PolyPath64)!.Polygon = p;
-      _childs.Add(newChild);
+      Childs.Add(newChild);
       return newChild;
     }
 
@@ -3979,22 +4155,23 @@ namespace Clipper2Lib
     {
       get
       {
-        if (index < 0 || index >= _childs.Count)
+        if (index < 0 || index >= Count)
           throw new InvalidOperationException();
-        return (PolyPath64) _childs[index];
+        return (PolyPath64) _childs![index];
       }
     }
 
     public PolyPath64 Child(int index)
     {
-      if (index < 0 || index >= _childs.Count)
+      if (index < 0 || index >= Count)
         throw new InvalidOperationException();
-      return (PolyPath64) _childs[index];
+      return (PolyPath64) _childs![index];
     }
 
     public double Area()
     {
       double result = Polygon == null ? 0 : Clipper.Area(Polygon);
+      if (_childs == null) return result;
       foreach (PolyPathBase polyPathBase in _childs)
       {
         PolyPath64 child = (PolyPath64) polyPathBase;
@@ -4021,7 +4198,7 @@ namespace Clipper2Lib
       PolyPathD newChild = new PolyPathD(this);
       newChild.Scale = Scale;
       newChild.Polygon = Clipper.ScalePathD(p, Scale); // C++: ScalePath(path, scale_)
-      _childs.Add(newChild);
+      Childs.Add(newChild);
       return newChild;
     }
 
@@ -4030,7 +4207,7 @@ namespace Clipper2Lib
       PolyPathD newChild = new PolyPathD(this);
       newChild.Scale = Scale;
       newChild.Polygon = p;
-      _childs.Add(newChild);
+      Childs.Add(newChild);
       return newChild;
     }
 
@@ -4038,22 +4215,23 @@ namespace Clipper2Lib
     {
       get
       {
-        if (index < 0 || index >= _childs.Count)
+        if (index < 0 || index >= Count)
           throw new InvalidOperationException();
-        return (PolyPathD) _childs[index];
+        return (PolyPathD) _childs![index];
       }
     }
 
     public PolyPathD Child(int index)
     {
-      if (index < 0 || index >= _childs.Count)
+      if (index < 0 || index >= Count)
         throw new InvalidOperationException();
-      return (PolyPathD) _childs[index];
+      return (PolyPathD) _childs![index];
     }
 
     public double Area()
     {
       double result = Polygon == null ? 0 : Clipper.Area(Polygon);
+      if (_childs == null) return result;
       foreach (PolyPathBase polyPathBase in _childs)
       {
         PolyPathD child = (PolyPathD) polyPathBase;

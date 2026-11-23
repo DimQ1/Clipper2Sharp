@@ -907,9 +907,11 @@ namespace Clipper2Lib.UnitTests
         for (int repeat = 0; repeat < 50; repeat++) run();
         return GC.GetAllocatedBytesForCurrentThread() - before;
       }
+      // the scaled polygon lives in a pooled buffer, so once the pool is warm
+      // neither the single query nor the short batch allocates anything
       long scalarBytes = Allocated(scalar), bulkBytes = Allocated(bulk);
-      Assert.IsTrue(bulkBytes * 10 < scalarBytes,
-        $"Expected one scaling per batch: scalar {scalarBytes}, bulk {bulkBytes}");
+      Assert.AreEqual(0, scalarBytes, "single PathD queries allocated");
+      Assert.AreEqual(0, bulkBytes, "a short PathD batch allocated");
     }
 
     [TestMethod]

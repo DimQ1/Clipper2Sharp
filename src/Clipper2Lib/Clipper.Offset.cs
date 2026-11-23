@@ -46,7 +46,8 @@ namespace Clipper2Lib
       internal readonly JoinType joinType;
       internal readonly EndType endType;
 
-      public Group(Paths64 paths, JoinType joinType, EndType endType = EndType.Polygon)
+      public Group(Paths64 paths, JoinType joinType, EndType endType = EndType.Polygon,
+        bool ownsPaths = false)
       {
         this.joinType = joinType;
         this.endType = endType;
@@ -54,9 +55,29 @@ namespace Clipper2Lib
         bool isJoined =
           (endType == EndType.Polygon) ||
           (endType == EndType.Joined);
-        pathsIn = new Paths64(paths.Count);
-        foreach (Path64 p in paths)
-          pathsIn.Add(Clipper.StripDuplicates(p, isJoined));
+        if (ownsPaths)
+        {
+          // the caller hands over paths nobody else sees (InflatePaths' scaled
+          // copy), so they are stripped where they are instead of copied again
+          pathsIn = paths;
+          foreach (Path64 p in paths)
+          {
+            int srcCount = p.Count;
+            Point64 first = srcCount > 0 ? p[0] : default;
+            StripDuplicatesInPlace(p, isJoined);
+            if (KeepsSinglePoint(endType, p.Count, srcCount)) p.Add(first);
+          }
+        }
+        else
+        {
+          pathsIn = new Paths64(paths.Count);
+          foreach (Path64 p in paths)
+          {
+            Path64 stripped = Clipper.StripDuplicates(p, isJoined);
+            if (KeepsSinglePoint(endType, stripped.Count, p.Count)) stripped.Add(p[0]);
+            pathsIn.Add(stripped);
+          }
+        }
 
         if (endType == EndType.Polygon)
         {
@@ -73,6 +94,34 @@ namespace Clipper2Lib
           isReversed = false;
         }
       }
+    }
+
+    // An open path of coincident points offset with EndType.Joined is closed
+    // before stripping, so its closing duplicate removes its only point. The
+    // C++ original keeps that point (its in-place StripDuplicates never empties
+    // a path), and the path is then offset as a single point, just as the same
+    // path is with an open end type; without it the empty path threw.
+    // (Polygon groups keep the existing behaviour: an all-equal polygon has no
+    // area and contributes nothing.)
+    private static bool KeepsSinglePoint(EndType endType, int strippedCount, int sourceCount) =>
+      endType == EndType.Joined && strippedCount == 0 && sourceCount > 0;
+
+    /// <summary>Clipper.StripDuplicates(path, isClosedPath), done in place.</summary>
+    private static void StripDuplicatesInPlace(Path64 path, bool isClosedPath)
+    {
+      int cnt = path.Count;
+      if (cnt == 0) return;
+      Span<Point64> pts = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(path);
+      Point64 lastPt = pts[0];
+      int w = 1;
+      for (int i = 1; i < cnt; i++)
+        if (lastPt != pts[i])
+        {
+          lastPt = pts[i];
+          pts[w++] = lastPt;
+        }
+      if (isClosedPath && lastPt == pts[0]) w--;
+      path.RemoveRange(w, cnt - w);
     }
 
     private const double floatingPointTolerance = 1e-12;
@@ -102,6 +151,9 @@ namespace Clipper2Lib
     private readonly Path64 _pathOut = new Path64();
     private Paths64? _solution;
     private PolyTree64? _solutionTree;
+    // when set, the final union writes the solution here, de-scaled by _invScale
+    private PathsD? _solutionD;
+    private double _invScale;
     // when set, offset paths go straight into the engine of the final union
     // instead of being copied into _solution first (see EmitPathOut)
     private Clipper64? _engine;
@@ -185,6 +237,16 @@ namespace Clipper2Lib
     {
       if (paths.Count == 0) return;
       _groups.Add(new Group(paths, joinType, endType));
+    }
+
+    /// <summary>
+    /// AddPaths for paths the offsetter may keep and change (their duplicate
+    /// points are removed in place): only for a private copy of the input.
+    /// </summary>
+    internal void AddPathsOwned(Paths64 paths, JoinType joinType, EndType endType)
+    {
+      if (paths.Count == 0) return;
+      _groups.Add(new Group(paths, joinType, endType, true));
     }
 
     // Miscellaneous methods -----------------------------------------------------
@@ -295,7 +357,10 @@ namespace Clipper2Lib
       _norms.Clear();
       int cnt = path.Count;
       if (cnt == 0) return;
-      _norms.Capacity = cnt;
+      // nb: EnsureCapacity, not 'Capacity =': the setter reallocates whenever the
+      // capacity differs, i.e. for nearly every path (and 'Joined' paths append
+      // one more normal below, which then doubled the fresh array again)
+      _norms.EnsureCapacity(cnt + 1);
       for (int i = 0; i < cnt - 1; i++)
         _norms.Add(GetUnitNormal(path[i], path[i + 1]));
       _norms.Add(GetUnitNormal(path[cnt - 1], path[0]));
@@ -611,6 +676,10 @@ namespace Clipper2Lib
         int pathLen = pathIn.Count;
         _pathOut.Clear();
 
+        // an empty open path has nothing to offset (both open routines read
+        // its first point); empty polygons keep their existing handling
+        if (pathLen == 0 && group.endType != EndType.Polygon) continue;
+
         if (pathLen == 1) // single point
         {
           if (DeltaCallback != null)
@@ -777,6 +846,11 @@ namespace Clipper2Lib
           else
             c.Execute(ClipType.Union, FillRule.Positive, _solutionTree);
         }
+        else if (_solutionD != null)
+        {
+          c.ExecuteD(ClipType.Union,
+            pathsReversed ? FillRule.Negative : FillRule.Positive, _solutionD, _invScale);
+        }
         else
         {
           if (pathsReversed)
@@ -842,6 +916,7 @@ namespace Clipper2Lib
       solution.Clear();
       _solution = solution;
       _solutionTree = null;
+      _solutionD = null;
       ExecuteInternal(delta);
     }
 
@@ -849,9 +924,32 @@ namespace Clipper2Lib
     {
       solutionTree.Clear();
       _solutionTree = solutionTree;
+      _solutionD = null;
       _solution = new Paths64();
       ExecuteInternal(delta);
       _solution = null;
+    }
+
+    /// <summary>
+    /// Execute(delta, Paths64) followed by ScalePathsD(solution, invScale), with
+    /// the de-scaled paths built directly (no intermediate Paths64 result).
+    /// </summary>
+    internal void ExecuteScaled(double delta, PathsD solution, double invScale)
+    {
+      solution.Clear();
+      _solutionTree = null;
+      _solutionD = solution;
+      _invScale = invScale;
+      _solution = new Paths64();
+      try
+      {
+        ExecuteInternal(delta);
+      }
+      finally
+      {
+        _solution = null;
+        _solutionD = null;
+      }
     }
 
     public void Execute(DeltaCallback64 deltaCallback, Paths64 solution)

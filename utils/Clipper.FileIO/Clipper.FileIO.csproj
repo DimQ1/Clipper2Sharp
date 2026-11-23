@@ -1,6 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <!-- the tests reference this project and run on every framework the package ships -->
+    <TargetFramework />
+    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
     <RootNamespace>Clipper2Lib</RootNamespace>
     <AssemblyName>Clipper.FileIO</AssemblyName>
     <IsPackable>false</IsPackable>

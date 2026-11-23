@@ -33,7 +33,10 @@ namespace Clipper2Lib
   internal class Vertex2
   {
     public Point64 pt;
-    public List<Edge> edges = new List<Edge>(2);
+    // nb: room for 4 edges - with 2 the list kept growing (and copying); 4
+    // measured -7% of the allocations of a 2000 vertex triangulation at the
+    // same speed, 6 allocated more again
+    public List<Edge> edges = new List<Edge>(4);
     public bool innerLM = false;
 
     public Vertex2(Point64 p64) { pt = p64; }

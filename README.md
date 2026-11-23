@@ -17,8 +17,9 @@ sources (`clipper.engine.cpp`, `clipper.offset.cpp`, `clipper.rectclip.cpp`,
 `clipper.triangulation.cpp`, `clipper.core.h`, `clipper.h`), not of the older
 C# 2.0.0 code.
 
-* Library target frameworks: **.NET 10 and .NET 11** (currently preview).
-  Building all targets requires the .NET 11 SDK; examples remain on .NET 10.
+* The repository builds on **.NET 11**; the NuGet package ships **`net10.0` and
+  `net11.0`** assemblies, so .NET 10 applications keep working. Building requires
+  the .NET 11 SDK; the tests also need the .NET 10 runtime (they run on both).
 * Solution file: **`Clipper2Sharp.slnx`** (the XML solution format)
 * **100 % managed C#**: one assembly (`Clipper2Lib.dll`), **no P/Invoke and no
   native library**, no `unsafe` code (only the portable
@@ -108,8 +109,9 @@ use (`Tests/Polygons.txt` with 195 boolean cases, `Lines.txt`, `Offsets.txt`,
 `PolytreeHoleOwner*.txt`), plus ports of `TestRect`, `TestRectClip`,
 `TestSimplifyPath`, `TestTrimCollinear` and additional rect-clip, triangulation,
 Minkowski, sorter, multi-threaded-path, point locator, parallel boolean and
-reusable-data, BooleanOp compatibility, engine-reuse and web-demo regression tests: **47 tests per target framework,
-all green on .NET 10 and .NET 11 Preview 4**.
+reusable-data, BooleanOp compatibility, engine-reuse and web-demo regression tests, and equivalence tests against the
+2.0.4 implementations of every function the 2.0.5 optimisations changed: **61 tests per target framework,
+all green on .NET 10 and .NET 11**.
 
 ## Packaging and CI
 
@@ -117,7 +119,7 @@ The library ships as the **`Clipper2Sharp`** NuGet package (assembly and namespa
 stay `Clipper2Lib`, so it is a drop-in for the upstream C# port). Three GitHub Actions
 workflows cover it:
 
-* `ci.yml` — on every push and pull request: build, the 47 tests on each framework, the
+* `ci.yml` — on every push and pull request: build, the 61 tests on each framework, the
   **bit-exactness gates** (`golden verify` on the whole corpus, `fidelity` against
   the C++ dump, the Z flavour's golden), `dotnet pack`, an inspection of the
   `.nupkg` (both `net10.0` and `net11.0` assemblies), and scratch projects that

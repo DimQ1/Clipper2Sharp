@@ -6,6 +6,9 @@
     <RootNamespace>Clipper2.PortProfileZ</RootNamespace>
     <AssemblyName>Clipper2.PortProfileZ</AssemblyName>
     <IsPackable>false</IsPackable>
+    <!-- -p:GateFramework=net10.0 runs this driver against the net10.0 assembly
+         the package ships (the default is the repository's framework) -->
+    <TargetFramework Condition="'$(GateFramework)' != ''">$(GateFramework)</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>

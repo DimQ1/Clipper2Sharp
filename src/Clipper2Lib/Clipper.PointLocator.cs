@@ -49,15 +49,23 @@ namespace Clipper2Lib
 
     private readonly int _count;       // polygon vertex count
     private readonly long _minX, _maxX, _minY, _maxY;
-    private readonly long _bucketHeight;
+    // nb: the bucket height is a power of two, so finding a query's bucket is
+    // a shift (a 64 bit division per query cost more than the scan of a small
+    // bucket). Which bucket an edge lands in does not change any answer: the
+    // query visits every edge whose Y range contains it, in any order (above).
+    private readonly int _bucketShift;
     private readonly int[] _bucketStart = Array.Empty<int>();
     private readonly EdgeRec[] _entries = Array.Empty<EdgeRec>();
 
     public PointInPolygonLocator(Path64 polygon)
+      : this((ReadOnlySpan<Point64>) CollectionsMarshal.AsSpan(polygon))
     {
-      _count = polygon.Count;
+    }
+
+    internal PointInPolygonLocator(ReadOnlySpan<Point64> p)
+    {
+      _count = p.Length;
       if (_count < 3) return;
-      ReadOnlySpan<Point64> p = CollectionsMarshal.AsSpan(polygon);
       int n = p.Length;
 
       _minX = long.MaxValue; _maxX = long.MinValue;
@@ -73,48 +81,54 @@ namespace Clipper2Lib
 
       // the side a vertex on the query line inherits: the Y of the nearest
       // previous vertex (cyclically) whose Y differs from its own
-      long[] prevDiffY = new long[n];
+      using BulkOps.Scratch<long> prevDiffScratch = new BulkOps.Scratch<long>(n, false);
+      Span<long> prevDiffY = prevDiffScratch.Span;
       int s0 = 0;
-      while (p[s0].Y == p[(s0 + n - 1) % n].Y) s0++;
-      for (int k = 0; k < n; k++)
+      while (p[s0].Y == p[s0 == 0 ? n - 1 : s0 - 1].Y) s0++;
+      for (int k = 0, i = s0; k < n; k++, i = (i == n - 1) ? 0 : i + 1)
       {
-        int i = (s0 + k) % n, im1 = (i + n - 1) % n;
+        int im1 = i == 0 ? n - 1 : i - 1;
         prevDiffY[i] = (p[i].Y != p[im1].Y) ? p[im1].Y : prevDiffY[im1];
       }
 
       // bucket the edges by Y (an edge goes into every bucket its closed Y range
       // overlaps); fewer buckets if long edges would make the table too large
+      // (the bucket count is chosen as before, with the exact height; the height
+      // is then rounded up to a power of two, which can only merge buckets, so
+      // the table never gets larger than the division based one)
       long span = _maxY - _minY + 1;
       int buckets = Math.Min(n, 1024);
-      long total;
+      long height;
       for (; ; )
       {
-        _bucketHeight = (span + buckets - 1) / buckets;
-        total = 0;
+        height = (span + buckets - 1) / buckets;
+        long total = 0;
         for (int i = 0; i < n; i++)
         {
-          long y1 = p[(i + n - 1) % n].Y, y2 = p[i].Y;
+          long y1 = p[i == 0 ? n - 1 : i - 1].Y - _minY, y2 = p[i].Y - _minY;
           if (y1 > y2) (y1, y2) = (y2, y1);
-          total += Bucket(y2) - Bucket(y1) + 1;
+          total += y2 / height - y1 / height + 1;
         }
         if (buckets == 1 || total <= 16L * n) break;
         buckets /= 2;
       }
-      buckets = (int) ((span + _bucketHeight - 1) / _bucketHeight);
+      _bucketShift = ShiftFor(height);
+      buckets = Bucket(_maxY) + 1;
 
       _bucketStart = new int[buckets + 1];
       for (int i = 0; i < n; i++)
       {
-        long y1 = p[(i + n - 1) % n].Y, y2 = p[i].Y;
+        long y1 = p[i == 0 ? n - 1 : i - 1].Y, y2 = p[i].Y;
         if (y1 > y2) (y1, y2) = (y2, y1);
         for (int b = Bucket(y1), e = Bucket(y2); b <= e; b++) _bucketStart[b + 1]++;
       }
       for (int b = 0; b < buckets; b++) _bucketStart[b + 1] += _bucketStart[b];
       _entries = new EdgeRec[_bucketStart[buckets]];
-      int[] fill = new int[buckets];
+      using BulkOps.Scratch<int> fillScratch = new BulkOps.Scratch<int>(buckets, true);
+      Span<int> fill = fillScratch.Span;
       for (int i = 0; i < n; i++)
       {
-        int im1 = (i + n - 1) % n;
+        int im1 = i == 0 ? n - 1 : i - 1;
         EdgeRec rec = new EdgeRec { prev = p[im1], curr = p[i], prevSideY = prevDiffY[im1] };
         long y1 = rec.prev.Y, y2 = rec.curr.Y;
         if (y1 > y2) (y1, y2) = (y2, y1);
@@ -123,8 +137,17 @@ namespace Clipper2Lib
       }
     }
 
+    /// <summary>The smallest shift whose bucket height (1 &lt;&lt; shift) is at
+    /// least <paramref name="height"/>.</summary>
+    private static int ShiftFor(long height)
+    {
+      int shift = 0;
+      while (shift < 62 && (1L << shift) < height) shift++;
+      return shift;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int Bucket(long y) => (int) ((y - _minY) / _bucketHeight);
+    private int Bucket(long y) => (int) ((y - _minY) >> _bucketShift);
 
     /// <summary>The number of polygon vertices the locator was built from.</summary>
     public int Count => _count;
@@ -230,7 +253,9 @@ namespace Clipper2Lib
     {
       InternalClipper.CheckPrecision(precision);
       _scale = Math.Pow(10, precision);
-      _locator = new PointInPolygonLocator(Clipper.ScalePath64(polygon, _scale));
+      // nb: the locator copies what it needs, so the scaled polygon is pooled
+      using BulkOps.Scratch<Point64> scratch = new BulkOps.Scratch<Point64>(polygon.Count, false);
+      _locator = new PointInPolygonLocator(Clipper.ScaleInto(polygon, _scale, scratch.Span));
     }
 
     public PointInPolygonResult Locate(PointD pt) => _locator.Locate(new Point64(pt, _scale));

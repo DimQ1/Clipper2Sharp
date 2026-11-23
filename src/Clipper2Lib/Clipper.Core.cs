@@ -1064,7 +1064,10 @@ namespace Clipper2Lib
 
     // GetBounds -----------------------------------------------------------------
 
-    public static Rect64 GetBounds(Path64 path)
+    public static Rect64 GetBounds(Path64 path) =>
+      GetBounds((ReadOnlySpan<Point64>) CollectionsMarshal.AsSpan(path));
+
+    internal static Rect64 GetBounds(ReadOnlySpan<Point64> path)
     {
 #if USINGZ
       long xmin = long.MaxValue, ymin = long.MaxValue;
@@ -1080,10 +1083,9 @@ namespace Clipper2Lib
 #else
       // nb: Point64 is a pair of 64 bit integers, so the point buffer can be
       // read as one interleaved coordinate buffer and reduced with SIMD
-      if (path.Count == 0)
+      if (path.Length == 0)
         return new Rect64(long.MaxValue, long.MaxValue, long.MinValue, long.MinValue);
-      ReadOnlySpan<long> vals = MemoryMarshal.Cast<Point64, long>(
-        CollectionsMarshal.AsSpan(path));
+      ReadOnlySpan<long> vals = MemoryMarshal.Cast<Point64, long>(path);
       BulkOps.MinMaxInterleaved(vals,
         out long xmin, out long xmax, out long ymin, out long ymax);
       return new Rect64(xmin, ymin, xmax, ymax);
@@ -1406,43 +1408,50 @@ namespace Clipper2Lib
     public static Path64 StripNearEqual(Path64 path, double maxDistSqrd,
       bool isClosedPath)
     {
-      if (path.Count == 0) return new Path64();
-      Path64 result = new Path64(path.Count);
-      Point64 firstPt = path[0], lastPt = firstPt;
-      result.Add(firstPt);
-      for (int i = 1; i < path.Count; i++)
+      int cnt = path.Count;
+      if (cnt == 0) return new Path64();
+      // nb: gathered in a pooled buffer, so the result has exactly its size
+      using BulkOps.Scratch<Point64> scratch = new BulkOps.Scratch<Point64>(cnt, false);
+      Span<Point64> buf = scratch.Span;
+      ReadOnlySpan<Point64> src = CollectionsMarshal.AsSpan(path);
+      int w = 0;
+      Point64 firstPt = src[0], lastPt = firstPt;
+      buf[w++] = firstPt;
+      for (int i = 1; i < cnt; i++)
       {
-        if (!NearEqual(path[i], lastPt, maxDistSqrd))
+        if (!NearEqual(src[i], lastPt, maxDistSqrd))
         {
-          lastPt = path[i];
-          result.Add(lastPt);
+          lastPt = src[i];
+          buf[w++] = lastPt;
         }
       }
-      if (!isClosedPath) return result;
-      while (result.Count > 1 && NearEqual(result[^1], firstPt, maxDistSqrd))
-        result.RemoveAt(result.Count - 1);
-      return result;
+      if (isClosedPath)
+        while (w > 1 && NearEqual(buf[w - 1], firstPt, maxDistSqrd)) w--;
+      return BulkOps.ToPath(buf.Slice(0, w), new Path64(w));
     }
 
     public static PathD StripNearEqual(PathD path, double maxDistSqrd,
       bool isClosedPath)
     {
-      if (path.Count == 0) return new PathD();
-      PathD result = new PathD(path.Count);
-      PointD firstPt = path[0], lastPt = firstPt;
-      result.Add(firstPt);
-      for (int i = 1; i < path.Count; i++)
+      int cnt = path.Count;
+      if (cnt == 0) return new PathD();
+      using BulkOps.Scratch<PointD> scratch = new BulkOps.Scratch<PointD>(cnt, false);
+      Span<PointD> buf = scratch.Span;
+      ReadOnlySpan<PointD> src = CollectionsMarshal.AsSpan(path);
+      int w = 0;
+      PointD firstPt = src[0], lastPt = firstPt;
+      buf[w++] = firstPt;
+      for (int i = 1; i < cnt; i++)
       {
-        if (!NearEqual(path[i], lastPt, maxDistSqrd))
+        if (!NearEqual(src[i], lastPt, maxDistSqrd))
         {
-          lastPt = path[i];
-          result.Add(lastPt);
+          lastPt = src[i];
+          buf[w++] = lastPt;
         }
       }
-      if (!isClosedPath) return result;
-      while (result.Count > 1 && NearEqual(result[^1], firstPt, maxDistSqrd))
-        result.RemoveAt(result.Count - 1);
-      return result;
+      if (isClosedPath)
+        while (w > 1 && NearEqual(buf[w - 1], firstPt, maxDistSqrd)) w--;
+      return BulkOps.ToPath(buf.Slice(0, w), new PathD(w));
     }
 
     public static Paths64 StripNearEqual(Paths64 paths, double maxDistSqrd,
@@ -1450,19 +1459,15 @@ namespace Clipper2Lib
     {
       // each path is independent, so the paths can be processed in parallel
       // (the results are written at stable indices, so output order is unchanged)
-      Paths64 result = new Paths64(paths.Count);
-      for (int i = 0; i < paths.Count; i++) result.Add(null!);
-      BulkOps.For(paths.Count, i => result[i] = StripNearEqual(paths[i], maxDistSqrd, isClosedPath));
-      return result;
+      return BulkOps.Map(paths, (maxDistSqrd, isClosedPath),
+        static (p, a) => StripNearEqual(p, a.maxDistSqrd, a.isClosedPath), new Paths64(paths.Count));
     }
 
     public static PathsD StripNearEqual(PathsD paths, double maxDistSqrd,
       bool isClosedPath)
     {
-      PathsD result = new PathsD(paths.Count);
-      for (int i = 0; i < paths.Count; i++) result.Add(null!);
-      BulkOps.For(paths.Count, i => result[i] = StripNearEqual(paths[i], maxDistSqrd, isClosedPath));
-      return result;
+      return BulkOps.Map(paths, (maxDistSqrd, isClosedPath),
+        static (p, a) => StripNearEqual(p, a.maxDistSqrd, a.isClosedPath), new PathsD(paths.Count));
     }
 
     internal static void StripDuplicates(Path64 path, bool isClosedPath)
@@ -1505,16 +1510,19 @@ namespace Clipper2Lib
 
     // PointInPolygon -------------------------------------------------------------
 
-    public static PointInPolygonResult PointInPolygon(Point64 pt, Path64 polygon)
-    {
-      int len = polygon.Count;
-      if (len < 3) return PointInPolygonResult.IsOutside;
+    // nb: inlined, so a call through the Path64 form still costs one call
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static PointInPolygonResult PointInPolygon(Point64 pt, Path64 polygon) =>
+      PointInPolygon(pt, (ReadOnlySpan<Point64>) CollectionsMarshal.AsSpan(polygon));
 
-      // nb: these scans are the entire cost of a point-in-polygon query, so the
-      // points are read through a span: the List<T> indexer reloads the backing
-      // array and its size on every access, while the span keeps a single length
-      // check that the JIT can hoist out of the loops.
-      ReadOnlySpan<Point64> poly = CollectionsMarshal.AsSpan(polygon);
+    // nb: these scans are the entire cost of a point-in-polygon query, so the
+    // points are read through a span: the List<T> indexer reloads the backing
+    // array and its size on every access, while the span keeps a single length
+    // check that the JIT can hoist out of the loops.
+    internal static PointInPolygonResult PointInPolygon(Point64 pt, ReadOnlySpan<Point64> poly)
+    {
+      int len = poly.Length;
+      if (len < 3) return PointInPolygonResult.IsOutside;
 
       int start = 0;
       while (start < len && poly[start].Y == pt.Y) ++start;
@@ -1594,15 +1602,17 @@ namespace Clipper2Lib
 
     public static PointInPolygonResult PointInPolygon(PointD pt, PathD polygon)
     {
-      int len = polygon.Count;
+      // nb: read through a span, as in the Point64 form
+      ReadOnlySpan<PointD> poly = CollectionsMarshal.AsSpan(polygon);
+      int len = poly.Length;
       if (len < 3) return PointInPolygonResult.IsOutside;
 
       int start = 0;
-      while (start < len && polygon[start].y == pt.y) ++start;
+      while (start < len && poly[start].y == pt.y) ++start;
       if (start == len) // not a proper polygon
         return PointInPolygonResult.IsOutside;
 
-      bool isAbove = polygon[start].y < pt.y, startingAbove = isAbove;
+      bool isAbove = poly[start].y < pt.y, startingAbove = isAbove;
       int val = 0, i = start + 1, end = len;
       while (true)
       {
@@ -1615,18 +1625,18 @@ namespace Clipper2Lib
 
         if (isAbove)
         {
-          while (i < end && polygon[i].y < pt.y) ++i;
+          while (i < end && poly[i].y < pt.y) ++i;
         }
         else
         {
-          while (i < end && polygon[i].y > pt.y) ++i;
+          while (i < end && poly[i].y > pt.y) ++i;
         }
 
         if (i == end) continue;
 
-        PointD curr = polygon[i], prev;
-        if (i > 0) prev = polygon[i - 1];
-        else prev = polygon[len - 1];
+        PointD curr = poly[i], prev;
+        if (i > 0) prev = poly[i - 1];
+        else prev = poly[len - 1];
 
         if (curr.y == pt.y)
         {
@@ -1662,8 +1672,8 @@ namespace Clipper2Lib
 
       if (i == len) i = 0;
       int cps = (i == 0) ?
-        CrossProductSign(polygon[len - 1], polygon[0], pt) :
-        CrossProductSign(polygon[i - 1], polygon[i], pt);
+        CrossProductSign(poly[len - 1], poly[0], pt) :
+        CrossProductSign(poly[i - 1], poly[i], pt);
 
       if (cps == 0) return PointInPolygonResult.IsOn;
       if ((cps < 0) == isAbove) val = 1 - val;

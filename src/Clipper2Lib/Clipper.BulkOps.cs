@@ -32,6 +32,12 @@ namespace Clipper2Lib
     private long[]? _items;
     private int _size;
     private readonly int _initialCapacity;
+    // the last value pushed while it is known to be still in the heap: the
+    // engine pushes runs of equal values (sorted local minima, the tops of both
+    // bounds of a minimum), and a value already in the heap changes nothing -
+    // Pop returns distinct values in descending order either way
+    private long _lastPushed;
+    private bool _hasLastPushed;
 
     public ScanlineHeap(int capacity)
     {
@@ -40,14 +46,21 @@ namespace Clipper2Lib
       _items = null;
       _size = 0;
       _initialCapacity = capacity < 16 ? 16 : capacity;
+      _lastPushed = 0;
+      _hasLastPushed = false;
     }
 
     public readonly int Count => _size;
 
-    public void Clear() { _size = 0; }
+    public readonly int Capacity => _items?.Length ?? 0;
+
+    public void Clear() { _size = 0; _hasLastPushed = false; }
 
     public void Push(long y)
     {
+      if (_hasLastPushed && y == _lastPushed) return;
+      _lastPushed = y;
+      _hasLastPushed = true;
       long[] items = _items ??= new long[_initialCapacity];
       if (_size == items.Length)
       {
@@ -89,6 +102,8 @@ namespace Clipper2Lib
       if (_size == 0) return false;
       y = PopMax();
       while (_size > 0 && _items![0] == y) PopMax(); // pop duplicates
+      // every copy of y has left the heap, so a later push of it must be kept
+      if (_hasLastPushed && _lastPushed == y) _hasLastPushed = false;
       return true;
     }
   }
@@ -127,6 +142,36 @@ namespace Clipper2Lib
         int end = Math.Min(start + chunk, count);
         for (int i = start; i < end; i++) body(i);
       });
+    }
+
+    /// <summary>
+    /// Fills <paramref name="result"/> (which must be empty) with
+    /// map(source[i], state) for every i, in order, serially or on several
+    /// threads. Called with a static lambda, so the serial case - nearly every
+    /// call - allocates neither a closure nor a delegate, and fills the list
+    /// with plain Adds; only the parallel case captures anything.
+    /// </summary>
+    internal static TList Map<TIn, TState, TOut, TList>(List<TIn> source, TState state,
+      Func<TIn, TState, TOut> map, TList result) where TList : List<TOut>
+    {
+      int count = source.Count;
+      if (!ShouldParallelize(count))
+      {
+        for (int i = 0; i < count; i++) result.Add(map(source[i], state));
+        return result;
+      }
+      MapParallel(source, state, map, result);
+      return result;
+    }
+
+    private static void MapParallel<TIn, TState, TOut>(List<TIn> source, TState state,
+      Func<TIn, TState, TOut> map, List<TOut> result)
+    {
+      int count = source.Count;
+      // nb: the list is sized before the workers start and never resized, so
+      // each worker writes its own indices of the same backing array
+      CollectionsMarshal.SetCount(result, count);
+      For(count, i => CollectionsMarshal.AsSpan(result)[i] = map(source[i], state));
     }
 
     /// <summary>
@@ -269,37 +314,40 @@ namespace Clipper2Lib
       return CollectionsMarshal.AsSpan(list);
     }
 
+    /// <summary>Copies the points into <paramref name="path"/> (an empty list
+    /// created with the right capacity) and returns it.</summary>
+    internal static TPath ToPath<T, TPath>(ReadOnlySpan<T> points, TPath path) where TPath : List<T>
+    {
+      points.CopyTo(GrowUninitialized(path, points.Length));
+      return path;
+    }
+
+    internal static TPath ToPath<T, TPath>(Span<T> points, TPath path) where TPath : List<T>
+      => ToPath((ReadOnlySpan<T>) points, path);
+
     /// <summary>
     /// A pooled scratch array (used by the geometry algorithms that need
-    /// temporary flags/distance buffers).
+    /// temporary flags/distance buffers). A ref struct, so taking one costs no
+    /// allocation: <c>using Scratch&lt;bool&gt; s = new(len, clear: true);</c>
     /// </summary>
-    internal sealed class Scratch<T> : IDisposable
+    internal ref struct Scratch<T>
     {
       private T[]? _array;
+      private readonly int _size;
 
       /// <summary>
-      /// Rents a scratch buffer of the requested size. nb: the buffer is always
-      /// cleared, because ArrayPool hands out dirty arrays and the geometry
-      /// algorithms rely on zeroed flags.
+      /// Rents a buffer of <paramref name="size"/> elements. ArrayPool hands
+      /// out dirty arrays, so <paramref name="clear"/> must be true unless the
+      /// caller writes every element before reading it.
       /// </summary>
-      public Span<T> Rent(int size)
+      public Scratch(int size, bool clear)
       {
+        _size = size;
         _array = System.Buffers.ArrayPool<T>.Shared.Rent(size);
-        Span<T> span = _array.AsSpan(0, size);
-        span.Clear();
-        return span;
+        if (clear) _array.AsSpan(0, size).Clear();
       }
 
-      /// <summary>
-      /// Rents a scratch buffer without clearing it - only for callers that
-      /// write every element before reading it (clearing a rented array is an
-      /// extra pass over the whole buffer).
-      /// </summary>
-      public Span<T> RentDirty(int size)
-      {
-        _array = System.Buffers.ArrayPool<T>.Shared.Rent(size);
-        return _array.AsSpan(0, size);
-      }
+      public readonly Span<T> Span => _array.AsSpan(0, _size);
 
       public void Dispose()
       {

@@ -47,7 +47,7 @@ namespace Clipper2Lib
 
     public static Paths64 Union(Paths64 subject, FillRule fillRule)
     {
-      return BooleanOp(ClipType.Union, fillRule, subject, new Paths64());
+      return BooleanOp(ClipType.Union, fillRule, subject, null);
     }
 
     public static Paths64 Union(Paths64 subject, Paths64 clip, FillRule fillRule)
@@ -57,7 +57,7 @@ namespace Clipper2Lib
 
     public static PathsD Union(PathsD subject, FillRule fillRule)
     {
-      return BooleanOp(ClipType.Union, fillRule, subject, new PathsD());
+      return BooleanOp(ClipType.Union, fillRule, subject, null);
     }
 
     public static PathsD Union(PathsD subject, PathsD clip,
@@ -199,9 +199,13 @@ namespace Clipper2Lib
       double scale = Math.Pow(10, precision);
       Paths64 tmp = ScalePaths64(paths, scale);
       ClipperOffset co = new ClipperOffset(miterLimit, scale * arcTolerance);
-      co.AddPaths(tmp, joinType, endType);
-      co.Execute(delta * scale, tmp); // reuse 'tmp' to receive (scaled) solution
-      return ScalePathsD(tmp, 1 / scale);
+      // nb: 'tmp' belongs to this call, so the offsetter strips its duplicates in
+      // place instead of copying every path again, and the final union writes
+      // the (de-scaled) PathD result directly - the same points ScalePathsD gave
+      co.AddPathsOwned(tmp, joinType, endType);
+      PathsD result = new PathsD();
+      co.ExecuteScaled(delta * scale, result, 1 / scale);
+      return result;
     }
 
     // Rect clipping -------------------------------------------------------------
@@ -226,7 +230,7 @@ namespace Clipper2Lib
       if (rect.IsEmpty() || paths.Count == 0) return new PathsD();
       double scale = Math.Pow(10, precision);
       Rect64 r = ScaleRect(rect, scale);
-      Paths64 tmpPath = ScalePaths64(paths, scale);
+      Paths64 tmpPath = ScalePathsTouchingRect(paths, scale, r, 3);
       RectClip64 rc = new RectClip64(r);
       tmpPath = rc.Execute(tmpPath);
       return ScalePathsD(tmpPath, 1 / scale);
@@ -259,10 +263,39 @@ namespace Clipper2Lib
       if (rect.IsEmpty() || paths.Count == 0) return new PathsD();
       double scale = Math.Pow(10, precision);
       Rect64 r = ScaleRect(rect, scale);
-      Paths64 tmpPath = ScalePaths64(paths, scale);
+      Paths64 tmpPath = ScalePathsTouchingRect(paths, scale, r, 2);
       RectClipLines64 rc = new RectClipLines64(r);
       tmpPath = rc.Execute(tmpPath);
       return ScalePathsD(tmpPath, 1 / scale);
+    }
+
+    /// <summary>
+    /// ScalePaths64 restricted to the paths the rect clipper would not skip:
+    /// it ignores paths with fewer than <paramref name="minCount"/> points and
+    /// paths whose (scaled) bounds miss the rectangle. The bounds are taken over
+    /// the scaled points themselves, so the test is exactly the clipper's, and
+    /// the paths are kept in order - only the allocations of the skipped paths
+    /// are saved.
+    /// </summary>
+    private static Paths64 ScalePathsTouchingRect(PathsD paths, double scale, Rect64 rect, int minCount)
+    {
+      int maxLen = 0;
+      foreach (PathD p in paths) if (p.Count > maxLen) maxLen = p.Count;
+      Paths64 result = new Paths64();
+      using BulkOps.Scratch<Point64> scratch = new BulkOps.Scratch<Point64>(maxLen, false);
+      Span<Point64> buf = scratch.Span;
+      foreach (PathD path in paths)
+      {
+        int n = path.Count;
+        if (n < minCount) continue;
+        ReadOnlySpan<PointD> src = CollectionsMarshal.AsSpan(path);
+        for (int i = 0; i < n; i++) buf[i] = new Point64(src[i], scale);
+        if (!rect.Intersects(InternalClipper.GetBounds((ReadOnlySpan<Point64>) buf.Slice(0, n)))) continue;
+        Path64 p64 = new Path64(n);
+        buf.Slice(0, n).CopyTo(BulkOps.GrowUninitialized(p64, n));
+        result.Add(p64);
+      }
+      return result;
     }
 
     public static PathsD RectClipLines(RectD rect, PathD path, int precision = 2)
@@ -302,8 +335,9 @@ namespace Clipper2Lib
       double a = 0.0;
       int cnt = path.Count;
       if (cnt < 3) return 0.0;
-      Point64 prevPt = path[cnt - 1];
-      foreach (Point64 pt in path)
+      ReadOnlySpan<Point64> pts = CollectionsMarshal.AsSpan(path);
+      Point64 prevPt = pts[cnt - 1];
+      foreach (Point64 pt in pts)
       {
         a += (double) (prevPt.Y + pt.Y) * (prevPt.X - pt.X);
         prevPt = pt;
@@ -318,12 +352,19 @@ namespace Clipper2Lib
       if (!BulkOps.ShouldParallelize(count))
       {
         double a = 0.0;
-        foreach (Path64 path in paths)
-          a += Area(path);
+        for (int i = 0; i < count; i++)
+          a += Area(paths[i]);
         return a;
       }
+      return AreaParallel(paths);
+    }
+
+    // nb: kept out of Area, so that the serial case allocates no closure
+    private static double AreaParallel(Paths64 paths)
+    {
       // the per path areas are summed in the original order, so the parallel
       // result is bit-identical to the sequential one
+      int count = paths.Count;
       double[] partial = new double[count];
       BulkOps.For(count, i => partial[i] = Area(paths[i]));
       double sum = 0.0;
@@ -337,8 +378,9 @@ namespace Clipper2Lib
       double a = 0.0;
       int cnt = path.Count;
       if (cnt < 3) return 0.0;
-      PointD prevPt = path[cnt - 1];
-      foreach (PointD pt in path)
+      ReadOnlySpan<PointD> pts = CollectionsMarshal.AsSpan(path);
+      PointD prevPt = pts[cnt - 1];
+      foreach (PointD pt in pts)
       {
         a += (prevPt.y + pt.y) * (prevPt.x - pt.x);
         prevPt = pt;
@@ -353,10 +395,16 @@ namespace Clipper2Lib
       if (!BulkOps.ShouldParallelize(count))
       {
         double a = 0.0;
-        foreach (PathD path in paths)
-          a += Area(path);
+        for (int i = 0; i < count; i++)
+          a += Area(paths[i]);
         return a;
       }
+      return AreaParallel(paths);
+    }
+
+    private static double AreaParallel(PathsD paths)
+    {
+      int count = paths.Count;
       double[] partial = new double[count];
       BulkOps.For(count, i => partial[i] = Area(paths[i]));
       double sum = 0.0;
@@ -408,19 +456,19 @@ namespace Clipper2Lib
 
     public static Path64 OffsetPath(Path64 path, long dx, long dy)
     {
-      Path64 result = new Path64(path.Count);
-      foreach (Point64 pt in path)
-        result.Add(new Point64(pt.X + dx, pt.Y + dy));
+      int n = path.Count;
+      Path64 result = new Path64(n);
+      Span<Point64> dst = BulkOps.GrowUninitialized(result, n);
+      ReadOnlySpan<Point64> src = CollectionsMarshal.AsSpan(path);
+      for (int i = 0; i < n; i++)
+        dst[i] = new Point64(src[i].X + dx, src[i].Y + dy);
       return result;
     }
 
     public static Paths64 OffsetPaths(Paths64 paths, long dx, long dy)
     {
-      int count = paths.Count;
-      Paths64 result = new Paths64(count);
-      for (int i = 0; i < count; i++) result.Add(null!);
-      BulkOps.For(count, i => result[i] = OffsetPath(paths[i], dx, dy));
-      return result;
+      return BulkOps.Map(paths, (dx, dy),
+        static (p, d) => OffsetPath(p, d.dx, d.dy), new Paths64(paths.Count));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -482,11 +530,8 @@ namespace Clipper2Lib
     public static Paths64 ScalePaths(Paths64 paths, double scale)
     {
       if (InternalClipper.IsAlmostZero(scale - 1)) return paths;
-      int count = paths.Count;
-      Paths64 result = new Paths64(count);
-      for (int i = 0; i < count; i++) result.Add(null!);
-      BulkOps.For(count, i => result[i] = ScalePath(paths[i], scale));
-      return result;
+      return BulkOps.Map(paths, scale,
+        static (p, s) => ScalePath(p, s), new Paths64(paths.Count));
     }
 
     public static PathD ScalePath(PathD path, double scale)
@@ -510,11 +555,8 @@ namespace Clipper2Lib
     public static PathsD ScalePaths(PathsD paths, double scale)
     {
       if (InternalClipper.IsAlmostZero(scale - 1)) return paths;
-      int count = paths.Count;
-      PathsD result = new PathsD(count);
-      for (int i = 0; i < count; i++) result.Add(null!);
-      BulkOps.For(count, i => result[i] = ScalePath(paths[i], scale));
-      return result;
+      return BulkOps.Map(paths, scale,
+        static (p, s) => ScalePath(p, s), new PathsD(paths.Count));
     }
 
     // Unlike ScalePath, both ScalePath64 & ScalePathD also involve type conversion
@@ -531,11 +573,8 @@ namespace Clipper2Lib
 
     public static Paths64 ScalePaths64(PathsD paths, double scale)
     {
-      int count = paths.Count;
-      Paths64 res = new Paths64(count);
-      for (int i = 0; i < count; i++) res.Add(null!);
-      BulkOps.For(count, i => res[i] = ScalePath64(paths[i], scale));
-      return res;
+      return BulkOps.Map(paths, scale,
+        static (p, s) => ScalePath64(p, s), new Paths64(paths.Count));
     }
 
     public static PathD ScalePathD(Path64 path, double scale)
@@ -551,11 +590,8 @@ namespace Clipper2Lib
 
     public static PathsD ScalePathsD(Paths64 paths, double scale)
     {
-      int count = paths.Count;
-      PathsD res = new PathsD(count);
-      for (int i = 0; i < count; i++) res.Add(null!);
-      BulkOps.For(count, i => res[i] = ScalePathD(paths[i], scale));
-      return res;
+      return BulkOps.Map(paths, scale,
+        static (p, s) => ScalePathD(p, s), new PathsD(paths.Count));
     }
 
     // The static functions Path64 and PathD convert path types without scaling
@@ -572,20 +608,14 @@ namespace Clipper2Lib
 
     public static Paths64 Paths64(PathsD paths)
     {
-      int count = paths.Count;
-      Paths64 result = new Paths64(count);
-      for (int i = 0; i < count; i++) result.Add(null!);
-      BulkOps.For(count, i => result[i] = Path64(paths[i]));
-      return result;
+      return BulkOps.Map(paths, 0,
+        static (p, _) => Path64(p), new Paths64(paths.Count));
     }
 
     public static PathsD PathsD(Paths64 paths)
     {
-      int count = paths.Count;
-      PathsD result = new PathsD(count);
-      for (int i = 0; i < count; i++) result.Add(null!);
-      BulkOps.For(count, i => result[i] = PathD(paths[i]));
-      return result;
+      return BulkOps.Map(paths, 0,
+        static (p, _) => PathD(p), new PathsD(paths.Count));
     }
 
     public static PathD PathD(Path64 path)
@@ -599,38 +629,29 @@ namespace Clipper2Lib
       return result;
     }
 
-    public static Path64 TranslatePath(Path64 path, long dx, long dy)
-    {
-      Path64 result = new Path64(path.Count);
-      foreach (Point64 pt in path)
-        result.Add(new Point64(pt.X + dx, pt.Y + dy));
-      return result;
-    }
+    public static Path64 TranslatePath(Path64 path, long dx, long dy) => OffsetPath(path, dx, dy);
 
     public static Paths64 TranslatePaths(Paths64 paths, long dx, long dy)
     {
-      int count = paths.Count;
-      Paths64 result = new Paths64(count);
-      for (int i = 0; i < count; i++) result.Add(null!);
-      BulkOps.For(count, i => result[i] = OffsetPath(paths[i], dx, dy));
-      return result;
+      return BulkOps.Map(paths, (dx, dy),
+        static (p, d) => OffsetPath(p, d.dx, d.dy), new Paths64(paths.Count));
     }
 
     public static PathD TranslatePath(PathD path, double dx, double dy)
     {
-      PathD result = new PathD(path.Count);
-      foreach (PointD pt in path)
-        result.Add(new PointD(pt.x + dx, pt.y + dy));
+      int n = path.Count;
+      PathD result = new PathD(n);
+      Span<PointD> dst = BulkOps.GrowUninitialized(result, n);
+      ReadOnlySpan<PointD> src = CollectionsMarshal.AsSpan(path);
+      for (int i = 0; i < n; i++)
+        dst[i] = new PointD(src[i].x + dx, src[i].y + dy);
       return result;
     }
 
     public static PathsD TranslatePaths(PathsD paths, double dx, double dy)
     {
-      int count = paths.Count;
-      PathsD result = new PathsD(count);
-      for (int i = 0; i < count; i++) result.Add(null!);
-      BulkOps.For(count, i => result[i] = TranslatePath(paths[i], dx, dy));
-      return result;
+      return BulkOps.Map(paths, (dx, dy),
+        static (p, d) => TranslatePath(p, d.dx, d.dy), new PathsD(paths.Count));
     }
 
     public static Path64 ReversePath(Path64 path)
@@ -649,20 +670,14 @@ namespace Clipper2Lib
 
     public static Paths64 ReversePaths(Paths64 paths)
     {
-      int count = paths.Count;
-      Paths64 result = new Paths64(count);
-      for (int i = 0; i < count; i++) result.Add(null!);
-      BulkOps.For(count, i => result[i] = ReversePath(paths[i]));
-      return result;
+      return BulkOps.Map(paths, 0,
+        static (p, _) => ReversePath(p), new Paths64(paths.Count));
     }
 
     public static PathsD ReversePaths(PathsD paths)
     {
-      int count = paths.Count;
-      PathsD result = new PathsD(count);
-      for (int i = 0; i < count; i++) result.Add(null!);
-      BulkOps.For(count, i => result[i] = ReversePath(paths[i]));
-      return result;
+      return BulkOps.Map(paths, 0,
+        static (p, _) => ReversePath(p), new PathsD(paths.Count));
     }
 
     // Bounds --------------------------------------------------------------------
@@ -842,47 +857,53 @@ namespace Clipper2Lib
         double minEdgeLenSqrd, bool isClosedPath)
     {
       int cnt = path.Count;
-      PathD result = new PathD(cnt);
-      if (cnt == 0) return result;
-      PointD lastPt = path[0];
-      result.Add(lastPt);
+      if (cnt == 0) return new PathD();
+      // nb: gathered in a pooled buffer, so the result has exactly its size
+      using BulkOps.Scratch<PointD> scratch = new BulkOps.Scratch<PointD>(cnt, false);
+      Span<PointD> buf = scratch.Span;
+      ReadOnlySpan<PointD> src = CollectionsMarshal.AsSpan(path);
+      int w = 0;
+      PointD lastPt = src[0];
+      buf[w++] = lastPt;
       for (int i = 1; i < cnt; i++)
-        if (!PointsNearEqual(lastPt, path[i], minEdgeLenSqrd))
+        if (!PointsNearEqual(lastPt, src[i], minEdgeLenSqrd))
         {
-          lastPt = path[i];
-          result.Add(lastPt);
+          lastPt = src[i];
+          buf[w++] = lastPt;
         }
 
-      if (isClosedPath && PointsNearEqual(lastPt, result[0], minEdgeLenSqrd))
-      {
-        result.RemoveAt(result.Count - 1);
-      }
-
-      return result;
+      if (isClosedPath && PointsNearEqual(lastPt, buf[0], minEdgeLenSqrd))
+        w--;
+      return BulkOps.ToPath(buf.Slice(0, w), new PathD(w));
     }
 
     public static Path64 StripDuplicates(Path64 path, bool isClosedPath)
     {
       int cnt = path.Count;
-      Path64 result = new Path64(cnt);
-      if (cnt == 0) return result;
-      Point64 lastPt = path[0];
-      result.Add(lastPt);
+      if (cnt == 0) return new Path64();
+      // nb: the kept points are counted first, so the result has exactly its
+      // size (a skipped point equals the last kept one, which is its predecessor)
+      ReadOnlySpan<Point64> src = CollectionsMarshal.AsSpan(path);
+      int kept = 1;
       for (int i = 1; i < cnt; i++)
-        if (lastPt != path[i])
-        {
-          lastPt = path[i];
-          result.Add(lastPt);
-        }
-      if (isClosedPath && lastPt == result[0])
-        result.RemoveAt(result.Count - 1);
+        if (src[i] != src[i - 1]) kept++;
+      if (isClosedPath && src[cnt - 1] == src[0]) kept--;
+      Path64 result = new Path64(kept);
+      if (kept == 0) return result;
+      Span<Point64> dst = BulkOps.GrowUninitialized(result, kept);
+      int w = 0;
+      dst[w++] = src[0];
+      for (int i = 1; i < cnt && w < kept; i++)
+        if (src[i] != src[i - 1]) dst[w++] = src[i];
       return result;
     }
 
     public static Paths64 StripDuplicates(Paths64 paths, bool isClosedPaths)
     {
-      // in-place, and every path is independent
-      BulkOps.For(paths.Count, i => StripDuplicates(paths[i], isClosedPaths));
+      // in-place (each slot gets its stripped copy), and every path is
+      // independent; before 2.0.5 the stripped copies were discarded, so the
+      // paths came back unchanged
+      BulkOps.For(paths.Count, i => paths[i] = StripDuplicates(paths[i], isClosedPaths));
       return paths;
     }
 
@@ -1087,7 +1108,8 @@ namespace Clipper2Lib
         if (points.IsEmpty) return;
         InternalClipper.CheckPrecision(precision);
         double scale = Math.Pow(10, precision);
-        Path64 path = ScalePath64(polygon, scale);
+        using BulkOps.Scratch<Point64> scratch = new BulkOps.Scratch<Point64>(polygon.Count, false);
+        ReadOnlySpan<Point64> path = ScaleInto(polygon, scale, scratch.Span);
         for (int i = 0; i < points.Length; i++)
           results[i] = InternalClipper.PointInPolygon(new Point64(points[i], scale), path);
         return;
@@ -1101,8 +1123,18 @@ namespace Clipper2Lib
       InternalClipper.CheckPrecision(precision);
       double scale = Math.Pow(10, precision);
       Point64 p = new Point64(pt, scale);
-      Path64 path = ScalePath64(polygon, scale);
-      return InternalClipper.PointInPolygon(p, path);
+      // nb: the scaled polygon is only read here, so it goes to a pooled buffer
+      using BulkOps.Scratch<Point64> scratch = new BulkOps.Scratch<Point64>(polygon.Count, false);
+      return InternalClipper.PointInPolygon(p, ScaleInto(polygon, scale, scratch.Span));
+    }
+
+    /// <summary>The points ScalePath64(path, scale) would hold, written to <paramref name="dst"/>.</summary>
+    internal static ReadOnlySpan<Point64> ScaleInto(PathD path, double scale, Span<Point64> dst)
+    {
+      ReadOnlySpan<PointD> src = CollectionsMarshal.AsSpan(path);
+      for (int i = 0; i < src.Length; i++)
+        dst[i] = new Point64(src[i], scale);
+      return dst.Slice(0, src.Length);
     }
 
     /// <summary>
@@ -1180,7 +1212,7 @@ namespace Clipper2Lib
 
     // Ramer-Douglas-Peucker -----------------------------------------------------
 
-    internal static void RDP(Path64 path, int begin, int end, double epsSqrd, Span<bool> flags)
+    internal static void RDP(ReadOnlySpan<Point64> path, int begin, int end, double epsSqrd, Span<bool> flags)
     {
       while (true)
       {
@@ -1214,16 +1246,17 @@ namespace Clipper2Lib
       int len = path.Count;
       if (len < 5) return path;
       // nb: the flags come from the array pool (cleared, the algorithm relies on it)
-      using BulkOps.Scratch<bool> flagScratch = new BulkOps.Scratch<bool>();
-      Span<bool> flags = flagScratch.Rent(len);
+      using BulkOps.Scratch<bool> flagScratch = new BulkOps.Scratch<bool>(len, true);
+      Span<bool> flags = flagScratch.Span;
+      ReadOnlySpan<Point64> pts = CollectionsMarshal.AsSpan(path);
       flags[0] = true;
       flags[len - 1] = true;
-      RDP(path, 0, len - 1, Sqr(epsilon), flags);
+      RDP(pts, 0, len - 1, Sqr(epsilon), flags);
       int kept = 0;
       for (int i = 0; i < len; ++i) if (flags[i]) kept++;
       Path64 result = new Path64(kept);
       for (int i = 0; i < len; ++i)
-        if (flags[i]) result.Add(path[i]);
+        if (flags[i]) result.Add(pts[i]);
       return result;
     }
 
@@ -1235,7 +1268,7 @@ namespace Clipper2Lib
       return result;
     }
 
-    internal static void RDP(PathD path, int begin, int end, double epsSqrd, Span<bool> flags)
+    internal static void RDP(ReadOnlySpan<PointD> path, int begin, int end, double epsSqrd, Span<bool> flags)
     {
       while (true)
       {
@@ -1269,16 +1302,17 @@ namespace Clipper2Lib
       int len = path.Count;
       if (len < 5) return path;
       // nb: the flags come from the array pool (cleared, the algorithm relies on it)
-      using BulkOps.Scratch<bool> flagScratch = new BulkOps.Scratch<bool>();
-      Span<bool> flags = flagScratch.Rent(len);
+      using BulkOps.Scratch<bool> flagScratch = new BulkOps.Scratch<bool>(len, true);
+      Span<bool> flags = flagScratch.Span;
+      ReadOnlySpan<PointD> pts = CollectionsMarshal.AsSpan(path);
       flags[0] = true;
       flags[len - 1] = true;
-      RDP(path, 0, len - 1, Sqr(epsilon), flags);
+      RDP(pts, 0, len - 1, Sqr(epsilon), flags);
       int kept = 0;
       for (int i = 0; i < len; ++i) if (flags[i]) kept++;
       PathD result = new PathD(kept);
       for (int i = 0; i < len; ++i)
-        if (flags[i]) result.Add(path[i]);
+        if (flags[i]) result.Add(pts[i]);
       return result;
     }
 
@@ -1292,27 +1326,31 @@ namespace Clipper2Lib
 
     // SimplifyPath --------------------------------------------------------------
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GetNext(int current, int high, Span<bool> flags)
+    // nb: SimplifyPath walks the points that are still kept (not 'flagged') in
+    // both directions. The C++ scans the flag array for the next/previous kept
+    // point, which degrades towards O(n^2) when long runs get removed; the
+    // kept points are linked here instead (next[]/prev[], unlinked when the
+    // point is flagged), so each step is O(1). Every query is made on a kept
+    // point, and the list yields exactly the point the scan would find, so the
+    // removals - and the result - are unchanged.
+
+    private const int SimplifyStackLimit = 128;
+
+    private static void LinkAll(Span<int> next, Span<int> prev)
     {
-      ++current;
-      while (current <= high && flags[current]) ++current;
-      if (current <= high) return current;
-      current = 0;
-      while (flags[current]) ++current;
-      return current;
+      int high = next.Length - 1;
+      for (int i = 0; i <= high; i++)
+      {
+        next[i] = i == high ? 0 : i + 1;
+        prev[i] = i == 0 ? high : i - 1;
+      }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GetPrior(int current, int high, Span<bool> flags)
+    private static void Unlink(int i, Span<int> next, Span<int> prev)
     {
-      if (current == 0) current = high;
-      else --current;
-      while (current > 0 && flags[current]) --current;
-      if (!flags[current]) return current;
-      current = high;
-      while (flags[current]) --current;
-      return current;
+      next[prev[i]] = next[i];
+      prev[next[i]] = prev[i];
     }
 
     public static Path64 SimplifyPath(Path64 path,
@@ -1322,18 +1360,25 @@ namespace Clipper2Lib
       double epsSqr = Sqr(epsilon);
       if (len < 4) return path;
 
-      // nb: the scratch buffers come from the array pool (no garbage per call)
-      using BulkOps.Scratch<bool> flagScratch = new BulkOps.Scratch<bool>();
-      using BulkOps.Scratch<double> dsqScratch = new BulkOps.Scratch<double>();
-      Span<bool> flags = flagScratch.Rent(len);
-      // nb: every element of 'dsq' is assigned below, so it needs no clearing
-      Span<double> dsq = dsqScratch.RentDirty(len);
-      int curr = 0;
+      // nb: the working arrays live on the stack for typical paths and come
+      // from the array pool otherwise (no garbage per call); every element of
+      // each is assigned below, so none needs clearing
+      bool onStack = len <= SimplifyStackLimit;
+      using BulkOps.Scratch<double> dsqScratch = onStack ? default : new BulkOps.Scratch<double>(len, false);
+      using BulkOps.Scratch<int> linkScratch = onStack ? default : new BulkOps.Scratch<int>(2 * len, false);
+      // nb: sized to the path - a stackalloc is zeroed, so a fixed size would
+      // clear the whole limit for every (typically short) path
+      Span<double> dsq = onStack ? stackalloc double[len] : dsqScratch.Span;
+      Span<int> links = onStack ? stackalloc int[2 * len] : linkScratch.Span;
+      Span<int> nxt = links.Slice(0, len), prv = links.Slice(len, len);
+      LinkAll(nxt, prv);
+      ReadOnlySpan<Point64> pts = CollectionsMarshal.AsSpan(path);
+      int curr = 0, removed = 0;
 
       if (isClosedPath)
       {
-        dsq[0] = PerpendicDistFromLineSqrd(path[0], path[high], path[1]);
-        dsq[high] = PerpendicDistFromLineSqrd(path[high], path[0], path[high - 1]);
+        dsq[0] = PerpendicDistFromLineSqrd(pts[0], pts[high], pts[1]);
+        dsq[high] = PerpendicDistFromLineSqrd(pts[high], pts[0], pts[high - 1]);
       }
       else
       {
@@ -1342,7 +1387,7 @@ namespace Clipper2Lib
       }
 
       for (int i = 1; i < high; ++i)
-        dsq[i] = PerpendicDistFromLineSqrd(path[i], path[i - 1], path[i + 1]);
+        dsq[i] = PerpendicDistFromLineSqrd(pts[i], pts[i - 1], pts[i + 1]);
 
       for (; ; )
       {
@@ -1351,13 +1396,13 @@ namespace Clipper2Lib
           int start = curr;
           do
           {
-            curr = GetNext(curr, high, flags);
+            curr = nxt[curr];
           } while (curr != start && dsq[curr] > epsSqr);
           if (curr == start) break;
         }
 
-        int prev = GetPrior(curr, high, flags);
-        int next = GetNext(curr, high, flags);
+        int prev = prv[curr];
+        int next = nxt[curr];
         if (next == prev) break;
 
         int prior2;
@@ -1366,33 +1411,32 @@ namespace Clipper2Lib
           prior2 = prev;
           prev = curr;
           curr = next;
-          next = GetNext(next, high, flags);
+          next = nxt[next];
         }
         else
-          prior2 = GetPrior(prev, high, flags);
+          prior2 = prv[prev];
 
-        flags[curr] = true;
+        Unlink(curr, nxt, prv);
+        nxt[curr] = -1; // marks the point as removed (it is no longer reachable)
+        removed++;
         curr = next;
-        next = GetNext(next, high, flags);
+        next = nxt[next];
         if (isClosedPath || ((curr != high) && (curr != 0)))
-          dsq[curr] = PerpendicDistFromLineSqrd(path[curr], path[prev], path[next]);
+          dsq[curr] = PerpendicDistFromLineSqrd(pts[curr], pts[prev], pts[next]);
         if (isClosedPath || ((prev != 0) && (prev != high)))
-          dsq[prev] = PerpendicDistFromLineSqrd(path[prev], path[prior2], path[curr]);
+          dsq[prev] = PerpendicDistFromLineSqrd(pts[prev], pts[prior2], pts[curr]);
       }
-      Path64 result = new Path64(len);
+      Path64 result = new Path64(len - removed);
       for (int i = 0; i < len; i++)
-        if (!flags[i]) result.Add(path[i]);
+        if (nxt[i] >= 0) result.Add(pts[i]);
       return result;
     }
 
     public static Paths64 SimplifyPaths(Paths64 paths,
       double epsilon, bool isClosedPaths = true)
     {
-      int count = paths.Count;
-      Paths64 result = new Paths64(count);
-      for (int i = 0; i < count; i++) result.Add(null!);
-      BulkOps.For(count, i => result[i] = SimplifyPath(paths[i], epsilon, isClosedPaths));
-      return result;
+      return BulkOps.Map(paths, (epsilon, isClosedPaths),
+        static (p, a) => SimplifyPath(p, a.epsilon, a.isClosedPaths), new Paths64(paths.Count));
     }
 
     public static PathD SimplifyPath(PathD path,
@@ -1402,24 +1446,34 @@ namespace Clipper2Lib
       double epsSqr = Sqr(epsilon);
       if (len < 4) return path;
 
-      using BulkOps.Scratch<bool> flagScratch = new BulkOps.Scratch<bool>();
-      using BulkOps.Scratch<double> dsqScratch = new BulkOps.Scratch<double>();
-      Span<bool> flags = flagScratch.Rent(len);
-      // nb: every element of 'dsq' is assigned below, so it needs no clearing
-      Span<double> dsq = dsqScratch.RentDirty(len);
-      int curr = 0;
+      // nb: the working arrays live on the stack for typical paths and come
+      // from the array pool otherwise (no garbage per call); every element of
+      // each is assigned below, so none needs clearing
+      bool onStack = len <= SimplifyStackLimit;
+      using BulkOps.Scratch<double> dsqScratch = onStack ? default : new BulkOps.Scratch<double>(len, false);
+      using BulkOps.Scratch<int> linkScratch = onStack ? default : new BulkOps.Scratch<int>(2 * len, false);
+      // nb: sized to the path - a stackalloc is zeroed, so a fixed size would
+      // clear the whole limit for every (typically short) path
+      Span<double> dsq = onStack ? stackalloc double[len] : dsqScratch.Span;
+      Span<int> links = onStack ? stackalloc int[2 * len] : linkScratch.Span;
+      Span<int> nxt = links.Slice(0, len), prv = links.Slice(len, len);
+      LinkAll(nxt, prv);
+      ReadOnlySpan<PointD> pts = CollectionsMarshal.AsSpan(path);
+      int curr = 0, removed = 0;
+
       if (isClosedPath)
       {
-        dsq[0] = PerpendicDistFromLineSqrd(path[0], path[high], path[1]);
-        dsq[high] = PerpendicDistFromLineSqrd(path[high], path[0], path[high - 1]);
+        dsq[0] = PerpendicDistFromLineSqrd(pts[0], pts[high], pts[1]);
+        dsq[high] = PerpendicDistFromLineSqrd(pts[high], pts[0], pts[high - 1]);
       }
       else
       {
         dsq[0] = double.MaxValue;
         dsq[high] = double.MaxValue;
       }
+
       for (int i = 1; i < high; ++i)
-        dsq[i] = PerpendicDistFromLineSqrd(path[i], path[i - 1], path[i + 1]);
+        dsq[i] = PerpendicDistFromLineSqrd(pts[i], pts[i - 1], pts[i + 1]);
 
       for (; ; )
       {
@@ -1428,13 +1482,13 @@ namespace Clipper2Lib
           int start = curr;
           do
           {
-            curr = GetNext(curr, high, flags);
+            curr = nxt[curr];
           } while (curr != start && dsq[curr] > epsSqr);
           if (curr == start) break;
         }
 
-        int prev = GetPrior(curr, high, flags);
-        int next = GetNext(curr, high, flags);
+        int prev = prv[curr];
+        int next = nxt[curr];
         if (next == prev) break;
 
         int prior2;
@@ -1443,33 +1497,32 @@ namespace Clipper2Lib
           prior2 = prev;
           prev = curr;
           curr = next;
-          next = GetNext(next, high, flags);
+          next = nxt[next];
         }
         else
-          prior2 = GetPrior(prev, high, flags);
+          prior2 = prv[prev];
 
-        flags[curr] = true;
+        Unlink(curr, nxt, prv);
+        nxt[curr] = -1; // marks the point as removed (it is no longer reachable)
+        removed++;
         curr = next;
-        next = GetNext(next, high, flags);
+        next = nxt[next];
         if (isClosedPath || ((curr != high) && (curr != 0)))
-          dsq[curr] = PerpendicDistFromLineSqrd(path[curr], path[prev], path[next]);
+          dsq[curr] = PerpendicDistFromLineSqrd(pts[curr], pts[prev], pts[next]);
         if (isClosedPath || ((prev != 0) && (prev != high)))
-          dsq[prev] = PerpendicDistFromLineSqrd(path[prev], path[prior2], path[curr]);
+          dsq[prev] = PerpendicDistFromLineSqrd(pts[prev], pts[prior2], pts[curr]);
       }
-      PathD result = new PathD(len);
+      PathD result = new PathD(len - removed);
       for (int i = 0; i < len; i++)
-        if (!flags[i]) result.Add(path[i]);
+        if (nxt[i] >= 0) result.Add(pts[i]);
       return result;
     }
 
     public static PathsD SimplifyPaths(PathsD paths,
       double epsilon, bool isClosedPath = true)
     {
-      int count = paths.Count;
-      PathsD result = new PathsD(count);
-      for (int i = 0; i < count; i++) result.Add(null!);
-      BulkOps.For(count, i => result[i] = SimplifyPath(paths[i], epsilon, isClosedPath));
-      return result;
+      return BulkOps.Map(paths, (epsilon, isClosedPath),
+        static (p, a) => SimplifyPath(p, a.epsilon, a.isClosedPath), new PathsD(paths.Count));
     }
 
     // TrimCollinear -------------------------------------------------------------
@@ -1483,41 +1536,45 @@ namespace Clipper2Lib
         else return p;
       }
 
-      Path64 dst = new Path64(len);
+      // nb: gathered in a pooled buffer, so the result has exactly its size
+      ReadOnlySpan<Point64> src = CollectionsMarshal.AsSpan(p);
+      using BulkOps.Scratch<Point64> scratch = new BulkOps.Scratch<Point64>(len, false);
+      Span<Point64> dst = scratch.Span;
+      int cnt = 0;
       int srcI = 0, prevI, stop = len - 1;
 
       if (!isOpenPath)
       {
-        while (srcI != stop && InternalClipper.IsCollinear(p[stop], p[srcI], p[srcI + 1]))
+        while (srcI != stop && InternalClipper.IsCollinear(src[stop], src[srcI], src[srcI + 1]))
           ++srcI;
-        while (srcI != stop && InternalClipper.IsCollinear(p[stop - 1], p[stop], p[srcI]))
+        while (srcI != stop && InternalClipper.IsCollinear(src[stop - 1], src[stop], src[srcI]))
           --stop;
         if (srcI == stop) return new Path64();
       }
 
       prevI = srcI++;
-      dst.Add(p[prevI]);
+      dst[cnt++] = src[prevI];
       for (; srcI != stop; ++srcI)
       {
-        if (!InternalClipper.IsCollinear(p[prevI], p[srcI], p[srcI + 1]))
+        if (!InternalClipper.IsCollinear(src[prevI], src[srcI], src[srcI + 1]))
         {
           prevI = srcI;
-          dst.Add(p[prevI]);
+          dst[cnt++] = src[prevI];
         }
       }
 
       if (isOpenPath)
-        dst.Add(p[srcI]);
-      else if (!InternalClipper.IsCollinear(p[prevI], p[stop], dst[0]))
-        dst.Add(p[stop]);
+        dst[cnt++] = src[srcI];
+      else if (!InternalClipper.IsCollinear(src[prevI], src[stop], dst[0]))
+        dst[cnt++] = src[stop];
       else
       {
-        while (dst.Count > 2 &&
-          InternalClipper.IsCollinear(dst[dst.Count - 1], dst[dst.Count - 2], dst[0]))
-          dst.RemoveAt(dst.Count - 1);
-        if (dst.Count < 3) return new Path64();
+        while (cnt > 2 &&
+          InternalClipper.IsCollinear(dst[cnt - 1], dst[cnt - 2], dst[0]))
+          cnt--;
+        if (cnt < 3) return new Path64();
       }
-      return dst;
+      return BulkOps.ToPath(dst.Slice(0, cnt), new Path64(cnt));
     }
 
     public static PathD TrimCollinear(PathD path, int precision, bool isOpenPath = false)
